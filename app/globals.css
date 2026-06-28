@@ -351,23 +351,6 @@ audio { width: 100%; margin-top: 4px; }
 }
 .note-author-inp:focus { border-color: var(--accent); }
 
-/* ── QA Review button group ───────────────────────────────── */
-.review-btngroup {
-  display: flex; border: 1px solid var(--border-strong); overflow: hidden;
-}
-.review-btn {
-  padding: 3px 10px; font-size: 11px; font-weight: 500; font-family: inherit;
-  background: var(--bg); color: var(--muted); border: none; border-right: 1px solid var(--border-strong);
-  cursor: pointer; text-transform: capitalize; transition: background .12s, color .12s;
-}
-.review-btn:last-child { border-right: 0; }
-.review-btn:hover { background: var(--panel-2); color: var(--text); }
-.review-btn.active { background: var(--panel-2); color: var(--text); font-weight: 600; }
-.review-btn.active.green { background: #e8f5e9; color: #2e7d32; }
-.review-btn.active.amber { background: #fff8e1; color: #8a6000; }
-.review-btn.active.blue  { background: #e8f0fe; color: #1a5fa8; }
-.review-btn:disabled { cursor: not-allowed; opacity: 0.6; }
-
 /* ── Premium polish ───────────────────────────────────────── */
 body { letter-spacing: -0.006em; }
 ::selection { background: var(--accent); color: #fff; }

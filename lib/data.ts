@@ -8,7 +8,6 @@ export type SessionRow = {
   id: string;
   room_name: string;
   status: string;
-  review_status: string;
   completion_reason: string | null;
   candidate_name: string | null;
   agent_name: string | null;
@@ -54,20 +53,19 @@ export type SessionFilters = {
   q?: string;
   status?: string;
   period?: string;
-  review?: string;
 };
 
 export async function listSessions(
   filters: SessionFilters = {},
 ): Promise<{ sessions: SessionRow[]; total: number }> {
-  const { page = 1, q, status, period, review } = filters;
+  const { page = 1, q, status, period } = filters;
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
   let query = db()
     .from("sessions")
     .select(
-      "id, room_name, status, review_status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at",
+      "id, room_name, status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -79,10 +77,6 @@ export async function listSessions(
 
   if (status && ["active", "completed", "abandoned"].includes(status)) {
     query = query.eq("status", status);
-  }
-
-  if (review && ["pending", "reviewed", "flagged", "cleared"].includes(review)) {
-    query = query.eq("review_status", review);
   }
 
   if (period && period !== "all") {
