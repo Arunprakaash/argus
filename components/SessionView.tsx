@@ -76,7 +76,17 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
             {agentName} · {titleCase(s.interview_type)} · <span className="mono">{s.room_name}</span>
           </div>
         </div>
-        <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
+          <a
+            href={`/api/sessions/${s.id}/export`}
+            download
+            className="btn"
+            style={{ fontSize: 12 }}
+          >
+            Export CSV
+          </a>
+        </div>
       </div>
 
       {/* Verdict strip */}
