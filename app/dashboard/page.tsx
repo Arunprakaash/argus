@@ -51,9 +51,9 @@ export default async function SessionsPage({
 
       <Suspense>
         <SessionsFilter />
+        <TranscriptSearch />
         <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
       </Suspense>
-      <TranscriptSearch />
     </div>
   );
 }
