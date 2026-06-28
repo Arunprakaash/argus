@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useTransition, useState, useRef } from "react";
+import { useCallback, useTransition, useState, useRef, useEffect } from "react";
 import { statusBadgeClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import SessionsTable from "@/components/SessionsTable";
 import type { SessionRow } from "@/lib/data";
@@ -52,6 +52,52 @@ export default function SessionsFilter({
   const [queryMode, setQueryMode] = useState<"keyword" | "semantic" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [inputValue, setInputValue] = useState(q);
+  const [placeholder, setPlaceholder] = useState("");
+
+  const EXAMPLES = [
+    "candidate confused about system design",
+    "who struggled with SQL questions?",
+    "sessions where profanity was handled",
+    "interviews that ended early",
+    "candidate mentioned microservices",
+    "who asked to postpone the interview?",
+  ];
+
+  useEffect(() => {
+    let phraseIdx = 0;
+    let charIdx = 0;
+    let deleting = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    function tick() {
+      const phrase = EXAMPLES[phraseIdx];
+      if (!deleting) {
+        charIdx++;
+        setPlaceholder(phrase.slice(0, charIdx));
+        if (charIdx === phrase.length) {
+          deleting = true;
+          timer = setTimeout(tick, 1800);
+        } else {
+          timer = setTimeout(tick, 48);
+        }
+      } else {
+        charIdx--;
+        setPlaceholder(phrase.slice(0, charIdx));
+        if (charIdx === 0) {
+          deleting = false;
+          phraseIdx = (phraseIdx + 1) % EXAMPLES.length;
+          timer = setTimeout(tick, 400);
+        } else {
+          timer = setTimeout(tick, 28);
+        }
+      }
+    }
+
+    timer = setTimeout(tick, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const push = useCallback(
     (updates: Record<string, string>) => {
@@ -78,6 +124,7 @@ export default function SessionsFilter({
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
+    setInputValue(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (!val.trim()) {
@@ -120,6 +167,7 @@ export default function SessionsFilter({
     setNlResults(null);
     setNlQuery("");
     setQueryMode(null);
+    setInputValue("");
     if (inputRef.current) inputRef.current.value = "";
     push({ q: "" });
   }
@@ -128,16 +176,27 @@ export default function SessionsFilter({
     <div>
       <div className="filter-bar">
         {/* Unified search — auto-classifies: short/simple = keyword ilike, sentence/NL = semantic */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", flex: 1, gap: 6 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", flex: 1 }}>
           <input
             ref={inputRef}
             className="filter-search"
             style={{ flex: 1 }}
             type="search"
-            placeholder="Search by name, room, or describe e.g. 'candidate confused about system design'"
+            placeholder={inputFocused ? "Search by name, room, or describe in plain English…" : ""}
             defaultValue={q}
             onChange={handleChange}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
           />
+          {/* Animated placeholder — only shown when idle (not focused, no value) */}
+          {!inputValue && !inputFocused && (
+            <span style={{
+              position: "absolute", left: 10, pointerEvents: "none",
+              fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden",
+            }}>
+              <span style={{ opacity: 0.5 }}>e.g. </span>{placeholder}<span style={{ borderRight: "1px solid var(--muted)", marginLeft: 1, animation: "blink 1s step-end infinite" }} />
+            </span>
+          )}
           {queryMode && !nlLoading && (
             <span style={{ position: "absolute", right: 10, fontSize: 10, color: "var(--muted)", background: "var(--bg)", padding: "1px 5px", border: "1px solid var(--border)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
               {queryMode}
@@ -178,7 +237,7 @@ export default function SessionsFilter({
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
             <span style={{ fontSize: 12, color: "var(--muted)" }}>
-              Transcript results for <strong style={{ color: "var(--text)" }}>"{nlQuery}"</strong>
+              results for <strong style={{ color: "var(--text)" }}>"{nlQuery}"</strong>
               {" "}— {nlResults.length} match{nlResults.length !== 1 ? "es" : ""}
             </span>
             <button onClick={clearNl} className="btn" style={{ fontSize: 11, padding: "2px 8px" }}>Clear</button>

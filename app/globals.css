@@ -421,3 +421,4 @@ kbd {
 /* ── Dark mode: logo SVG stroke ──────────────────────────── */
 [data-theme="dark"] .brand-logo-line { stroke: var(--text); }
 tbody tr.kb-focused { background: var(--panel-2); outline: 2px solid var(--accent); outline-offset: -2px; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
