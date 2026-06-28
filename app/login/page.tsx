@@ -35,9 +35,6 @@ export default function LoginPage() {
   return (
     <main style={{ maxWidth: 340, margin: "9rem auto", padding: "0 1rem" }}>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 650, letterSpacing: "-0.02em", margin: 0 }}>Argus</h1>
-      <p style={{ color: "var(--muted)", fontSize: ".9rem", marginTop: 4 }}>
-        The watchful guardian for your interview agent. Sign in to continue.
-      </p>
 
       <button
         className="btn"

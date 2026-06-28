@@ -23,7 +23,13 @@ export default function AppShell({ email, children }: { email: string; children:
       <div className="app">
         <header className="topbar">
           <div className="row">
-            <span className="brand-t">Argus</span>
+            <span className="brand-t" style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <svg width="22" height="14" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="0,10 6,10 8,2 10,18 12,6 14,10 20,10" stroke="#1a3940" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <line x1="20" y1="10" x2="26" y2="10" stroke="#1a3940" strokeWidth="2.5" strokeLinecap="round" opacity="0.35"/>
+              </svg>
+              Argus
+            </span>
             <span className="sep">/</span>
             <Breadcrumbs />
           </div>
