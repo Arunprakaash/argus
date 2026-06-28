@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { statusBadgeClass, severityClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import { useSetBreadcrumbTail } from "./breadcrumb-context";
+import NotesPanel from "./NotesPanel";
 
 function num(n: unknown): string {
   const v = Number(n);
@@ -30,7 +31,7 @@ const USAGE_TITLE: Record<string, string> = {
   interruption_usage: "Interruptions",
 };
 
-const TABS = ["Transcript", "Analysis", "Questions", "Usage", "Timeline"] as const;
+const TABS = ["Transcript", "Analysis", "Questions", "Usage", "Notes", "Timeline"] as const;
 
 function Tile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -304,6 +305,11 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Notes ─────────────────────────────────────────── */}
+        {tab === "Notes" && (
+          <NotesPanel sessionId={s.id} initial={data.annotations ?? []} />
         )}
 
         {/* ── Timeline ───────────────────────────────────────── */}

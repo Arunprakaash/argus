@@ -2,8 +2,8 @@ import { listSessions, getDashboardStats, PAGE_SIZE } from "@/lib/data";
 import SessionsTable from "@/components/SessionsTable";
 import SessionsFilter from "@/components/SessionsFilter";
 import LiveIndicator from "@/components/LiveIndicator";
+import DashboardStrip from "@/components/DashboardStrip";
 import { fmtDuration } from "@/lib/format";
-import UsageStrip from "@/components/UsageStrip";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -31,38 +31,13 @@ export default async function SessionsPage({
       </div>
       <p className="sub">Every interview the agent has run — transcript, audio, flags and AI analysis.</p>
 
-      {/* Stats strip */}
-      <div className="stats-strip">
-        <div className="stat-tile">
-          <div className="st-l">Total</div>
-          <div className="st-v">{stats.total}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">Completed</div>
-          <div className="st-v">{stats.completed}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">Abandoned</div>
-          <div className="st-v">{stats.abandoned}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">With issues</div>
-          <div className="st-v">{stats.withIssues}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">Issue rate</div>
-          <div className="st-v">
-            {stats.total > 0 ? `${Math.round((stats.withIssues / stats.total) * 100)}%` : "—"}
-          </div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">Avg duration</div>
-          <div className="st-v">{stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}</div>
-        </div>
-      </div>
-
-      {/* Usage + cost strip with info tooltips */}
-      <UsageStrip
+      <DashboardStrip
+        total={stats.total}
+        completed={stats.completed}
+        abandoned={stats.abandoned}
+        withIssues={stats.withIssues}
+        issueRate={stats.total > 0 ? `${Math.round((stats.withIssues / stats.total) * 100)}%` : "—"}
+        avgDuration={stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}
         totalInputTokens={stats.totalInputTokens}
         totalOutputTokens={stats.totalOutputTokens}
         totalTtsChars={stats.totalTtsChars}
@@ -73,7 +48,6 @@ export default async function SessionsPage({
         sttStats={stats.sttStats}
       />
 
-      {/* Filter bar — needs Suspense for useSearchParams */}
       <Suspense>
         <SessionsFilter />
       </Suspense>
