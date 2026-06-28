@@ -71,22 +71,25 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
       {/* Header */}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h1 className="page" style={{ marginBottom: 2 }}>{s.candidate_name || "Unknown candidate"}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <h1 className="page" style={{ marginBottom: 0 }}>{s.candidate_name || "Unknown candidate"}</h1>
+            <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
+          </div>
           <div className="muted" style={{ fontSize: 13 }}>
             {agentName} · {titleCase(s.interview_type)} · <span className="mono">{s.room_name}</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
-          <a
-            href={`/api/sessions/${s.id}/export`}
-            download
-            className="btn"
-            style={{ fontSize: 12 }}
-          >
-            Export CSV
-          </a>
-        </div>
+        <a
+          href={`/api/sessions/${s.id}/export`}
+          download
+          className="btn"
+          style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </a>
       </div>
 
       {/* Verdict strip */}
