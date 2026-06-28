@@ -1,0 +1,13 @@
+[project]
+name = "interview-observer"
+version = "0.1.0"
+description = "Agent-side SDK that forwards native LiveKit events to the Interview Observer backend."
+requires-python = ">=3.10"
+dependencies = ["aiohttp>=3.9"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["interview_observer"]
