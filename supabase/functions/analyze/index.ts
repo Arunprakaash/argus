@@ -196,6 +196,68 @@ async function processJob(sessionId: string) {
   }
 
   await Promise.all(writes);
+
+  // Slack notification — read settings, fire if conditions met
+  try {
+    await maybeNotifySlack(sessionId, {
+      coverage: writes[0] ? undefined : undefined, // resolved below via re-fetch
+    });
+  } catch (_) { /* non-fatal */ }
+}
+
+async function maybeNotifySlack(sessionId: string, _: unknown) {
+  const { data: cfg } = await supabase.from("settings").select("value").eq("key", "slack_integration").single();
+  const settings = cfg?.value as { webhook_url: string; enabled: boolean; notify_on: { issues: boolean; judge_disagree: boolean; abandoned: boolean } } | null;
+  if (!settings?.enabled || !settings?.webhook_url) return;
+
+  // Fetch fresh results after all writes
+  const [{ data: session }, { data: analyses }, { data: flags }] = await Promise.all([
+    supabase.from("sessions").select("candidate_name, room_name, status, completion_reason, interview_type").eq("id", sessionId).single(),
+    supabase.from("analyses").select("kind, verdict").eq("session_id", sessionId),
+    supabase.from("flags").select("id").eq("session_id", sessionId),
+  ]);
+
+  const byKind: Record<string, any> = {};
+  for (const a of analyses ?? []) byKind[a.kind] = a.verdict;
+
+  const coverage = byKind["coverage_recheck"];
+  const issues = byKind["issue_detection"];
+  const completion = byKind["completion"];
+
+  const shouldNotify = (
+    (settings.notify_on.issues && (issues?.findings?.length ?? 0) > 0) ||
+    (settings.notify_on.judge_disagree && coverage?.agreesWithAgent === false) ||
+    (settings.notify_on.abandoned && completion?.cleanlyCompleted === false)
+  );
+  if (!shouldNotify) return;
+
+  const lines: string[] = [];
+  lines.push(`🚨 *Argus alert — ${session?.candidate_name ?? "Unknown"}*`);
+  lines.push(`Room: \`${session?.room_name}\` | Status: ${session?.status}`);
+  lines.push("");
+
+  if (settings.notify_on.issues && issues?.findings?.length > 0) {
+    lines.push(`*Issues detected (${issues.findings.length}):*`);
+    for (const f of issues.findings.slice(0, 5)) {
+      lines.push(`• *${f.severity}* — ${f.category}: ${f.evidence}`);
+    }
+    lines.push("");
+  }
+  if (settings.notify_on.judge_disagree && coverage?.agreesWithAgent === false) {
+    const missingCount = coverage?.missing?.length ?? 0;
+    lines.push(`*Coverage judge disagreed* — ${missingCount} question(s) never asked.`);
+    lines.push("");
+  }
+  if (settings.notify_on.abandoned && completion?.cleanlyCompleted === false) {
+    lines.push(`*Interview not cleanly completed* — reason: ${completion?.reason ?? "unknown"}`);
+    lines.push("");
+  }
+
+  await fetch(settings.webhook_url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: lines.join("\n") }),
+  });
 }
 
 function upsertAnalysis(sessionId: string, kind: string, verdict: unknown, model: string) {

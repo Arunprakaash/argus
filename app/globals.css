@@ -179,7 +179,7 @@ audio { width: 100%; margin-top: 4px; }
 .field .v { font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .field .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .usage-block { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
-.usage-block .uh { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.usage-block .uh { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--panel); border-radius: 8px 8px 0 0; }
 .usage-block .uh .um { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .usage-block .ub { padding: 12px 14px; }
 
@@ -222,6 +222,23 @@ audio { width: 100%; margin-top: 4px; }
 .q-row:last-child { border-bottom: 0; }
 .q-row.q-missing { background: var(--panel); border-radius: 6px; padding: 12px 10px; margin-bottom: 2px; border-bottom-color: transparent; }
 .q-text { font-size: 14px; line-height: 1.5; padding-top: 2px; }
+
+/* ── Forms / Integrations ─────────────────────────────────── */
+.inp {
+  width: 100%; padding: .55rem .7rem; border: 1px solid var(--border-strong);
+  border-radius: 6px; font-size: 13px; font-family: inherit; color: var(--text);
+  background: var(--bg); outline: none;
+}
+.inp:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(51,79,85,.12); }
+.inp::placeholder { color: var(--muted-2); }
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.field-hint { font-size: 12px; color: var(--muted-2); }
+.toggle-row { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13px; user-select: none; }
+.toggle-row input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--text); border-color: var(--text); }
+.btn-primary:disabled, .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* ── Premium polish ───────────────────────────────────────── */
 body { letter-spacing: -0.006em; }
