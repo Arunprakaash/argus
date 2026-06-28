@@ -181,7 +181,7 @@ export default function SessionsFilter({
             ref={inputRef}
             className="filter-search"
             style={{ flex: 1 }}
-            type="search"
+            type="text"
             placeholder={inputFocused ? "Search by name, room, or describe in plain English…" : ""}
             defaultValue={q}
             onChange={handleChange}
