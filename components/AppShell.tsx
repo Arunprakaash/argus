@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Breadcrumbs from "./Breadcrumbs";
 import SignOutButton from "./SignOutButton";
+import KeyboardShortcuts from "./KeyboardShortcuts";
 import { BreadcrumbProvider } from "./breadcrumb-context";
 
 function NavLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
@@ -63,6 +64,7 @@ export default function AppShell({ email, children }: { email: string; children:
             </nav>
           </aside>
           <main className="content-wrap">{children}</main>
+          <KeyboardShortcuts />
         </div>
       </div>
     </BreadcrumbProvider>

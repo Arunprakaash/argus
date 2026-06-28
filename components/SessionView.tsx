@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { statusBadgeClass, severityClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import { useSetBreadcrumbTail } from "./breadcrumb-context";
 import NotesPanel from "./NotesPanel";
@@ -56,6 +56,17 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
 
   useSetBreadcrumbTail(s.room_name);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Transcript");
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      const idx = parseInt(e.key) - 1;
+      if (idx >= 0 && idx < TABS.length) setTab(TABS[idx]);
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const judge =
     coverage?.agreesWithAgent === true ? "✓ Correct"

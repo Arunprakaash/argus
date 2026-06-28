@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { statusBadgeClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import type { SessionRow } from "@/lib/data";
 import { PAGE_SIZE } from "@/lib/data";
@@ -20,6 +21,28 @@ export default function SessionsTable({
   const router = useRouter();
   const params = useSearchParams();
   const from = (page - 1) * PAGE_SIZE + 1;
+  const [focused, setFocused] = useState(-1);
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+
+  useEffect(() => { setFocused(-1); }, [sessions]);
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocused((i) => { const n = Math.min(i + 1, sessions.length - 1); rowRefs.current[n]?.scrollIntoView({ block: "nearest" }); return n; });
+      } else if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocused((i) => { const n = Math.max(i - 1, 0); rowRefs.current[n]?.scrollIntoView({ block: "nearest" }); return n; });
+      } else if (e.key === "Enter" && focused >= 0 && sessions[focused]) {
+        router.push(`/dashboard/sessions/${sessions[focused].id}`);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [focused, sessions, router]);
 
   function pageHref(p: number) {
     const next = new URLSearchParams(params.toString());
@@ -48,10 +71,11 @@ export default function SessionsTable({
             {sessions.length === 0 && (
               <tr><td colSpan={8}><div className="empty">No sessions yet. Run an interview to see it here.</div></td></tr>
             )}
-            {sessions.map((s) => (
+            {sessions.map((s, i) => (
               <tr
                 key={s.id}
-                className="clickable"
+                ref={(el) => { rowRefs.current[i] = el; }}
+                className={`clickable${focused === i ? " kb-focused" : ""}`}
                 onClick={() => router.push(`/dashboard/sessions/${s.id}`)}
               >
                 <td style={{ fontWeight: 600 }}>{s.candidate_name || "Unknown"}</td>
