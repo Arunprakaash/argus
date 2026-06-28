@@ -118,7 +118,9 @@ async function runIssueDetection(fixedQuestions: string[], turns: Turn[]) {
   const system = `You are a strict QA reviewer auditing an AI interviewer's transcript.
 Flag concrete issues only, with evidence. Categories:
 - hallucination: the interviewer invents facts/answers/content
-- off_script: asks a question not in the provided fixed set (follow-ups for detail are OK)
+- off_script: asks a question on a NET-NEW topic not derived from the fixed questions.
+  Brief clarifying follow-ups tied to the candidate's last answer are ALLOWED (the
+  interviewer may ask up to two per question) — do NOT flag those as off_script.
 - coaching: gives the candidate answers, hints, or evaluative feedback
 - premature_completion: wraps up before all questions were covered
 - flow_violation: skips the wrap-up check-in or restarts the sequence
@@ -140,7 +142,7 @@ Return JSON: { "findings": [ { "category": string, "severity": "low|medium|high"
 async function processJob(sessionId: string) {
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, status, completion_reason, fixed_questions")
+    .select("id, status, completion_reason, fixed_questions, started_at, ended_at")
     .eq("id", sessionId)
     .single();
   if (!session) return;
@@ -170,11 +172,18 @@ async function processJob(sessionId: string) {
     writes.push(upsertAnalysisError(sessionId, "coverage_recheck", err));
   }
 
-  // 2) completion check (rule-based, cheap)
+  // 2) completion check (rule-based, cheap) + duration backfill
+  let durationSec: number | null = null;
+  if (session.started_at && session.ended_at) {
+    durationSec =
+      (new Date(session.ended_at).getTime() - new Date(session.started_at).getTime()) / 1000;
+    writes.push(supabase.from("sessions").update({ duration_sec: durationSec }).eq("id", sessionId));
+  }
   const completionVerdict = {
     status: session.status,
     reason: session.completion_reason,
     cleanlyCompleted: session.status === "completed",
+    durationSec,
   };
   writes.push(upsertAnalysis(sessionId, "completion", completionVerdict, "rule-based"));
 

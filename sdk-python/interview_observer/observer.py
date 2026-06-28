@@ -49,6 +49,10 @@ SESSION_EVENTS = (
     "close",
 )
 
+# High-frequency, low-value events the SDK does not forward at all (the dashboard
+# rolls usage from the session totals; interim transcripts are dropped below).
+_SKIP_SEND = {"metrics_collected", "speech_created", "overlapping_speech", "session_usage_updated"}
+
 
 def _now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -140,6 +144,8 @@ class Observer:
         self._ensure_task()
 
         for ev in SESSION_EVENTS:
+            if ev in _SKIP_SEND:
+                continue
             session.on(ev, self._session_handler(ev))
 
         room = getattr(ctx, "room", None)
@@ -165,7 +171,11 @@ class Observer:
     # ── handlers ──────────────────────────────────────────────────────────────
     def _session_handler(self, event_type: str):
         def handler(ev: Any) -> None:
-            self._enqueue("session", event_type, _serialize(ev))
+            data = _serialize(ev)
+            # Drop interim (non-final) transcripts — only forward finalized text.
+            if event_type == "user_input_transcribed" and not data.get("is_final", True):
+                return
+            self._enqueue("session", event_type, data)
 
         return handler
 
