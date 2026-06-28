@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: ".6rem .7rem", boxSizing: "border-box",
-    border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 14,
+    border: "1px solid var(--border-strong)", fontSize: 14,
     fontFamily: "inherit", color: "var(--text)", outline: "none",
   };
 
