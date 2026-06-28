@@ -3,6 +3,7 @@ import SessionsTable from "@/components/SessionsTable";
 import SessionsFilter from "@/components/SessionsFilter";
 import LiveIndicator from "@/components/LiveIndicator";
 import { fmtDuration } from "@/lib/format";
+import { fmtTokens, fmtUsd } from "@/lib/cost";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,30 @@ export default async function SessionsPage({
         <div className="stat-tile">
           <div className="st-l">Avg duration</div>
           <div className="st-v">{stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}</div>
+        </div>
+      </div>
+
+      {/* Usage + cost strip */}
+      <div className="stats-strip" style={{ marginBottom: 18 }}>
+        <div className="stat-tile">
+          <div className="st-l">LLM input</div>
+          <div className="st-v">{fmtTokens(stats.totalInputTokens)}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">LLM output</div>
+          <div className="st-v">{fmtTokens(stats.totalOutputTokens)}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">TTS chars</div>
+          <div className="st-v">{fmtTokens(stats.totalTtsChars)}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">STT seconds</div>
+          <div className="st-v">{Math.round(stats.totalSttSec)}s</div>
+        </div>
+        <div className="stat-tile" style={{ gridColumn: "span 2" }}>
+          <div className="st-l">Estimated cost</div>
+          <div className="st-v">{fmtUsd(stats.estimatedCostUsd)}</div>
         </div>
       </div>
 

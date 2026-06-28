@@ -253,6 +253,11 @@ audio { width: 100%; margin-top: 4px; }
 .st-v { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
 @media (max-width: 860px) { .stats-strip { grid-template-columns: repeat(3, 1fr); } .stat-tile:nth-child(3) { border-right: 0; } }
 
+/* Functions page stat row */
+.fn-stats { display: flex; border: 1px solid var(--border); }
+.fn-stat { flex: 1; padding: 14px 16px; border-right: 1px solid var(--border); }
+.fn-stat:last-child { border-right: 0; }
+
 /* ── Live indicator ──────────────────────────────────────── */
 .live-banner {
   display: inline-flex; align-items: center; gap: 8px;

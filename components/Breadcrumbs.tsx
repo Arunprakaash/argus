@@ -7,16 +7,22 @@ import { useBreadcrumbTail } from "./breadcrumb-context";
 export default function Breadcrumbs() {
   const path = usePathname();
   const { tail } = useBreadcrumbTail();
-  const onDetail = /^\/dashboard\/sessions\/.+/.test(path);
+  const onSessionDetail = /^\/dashboard\/sessions\/.+/.test(path);
+  const onIntegrations = path.startsWith("/dashboard/integrations");
+  const onFunctions = path.startsWith("/dashboard/functions");
 
   return (
     <div className="crumb">
-      {onDetail ? (
+      {onSessionDetail ? (
         <>
           <Link href="/dashboard">Sessions</Link>
           <span className="sep">/</span>
           <b>{tail || "Session"}</b>
         </>
+      ) : onIntegrations ? (
+        <b>Integrations</b>
+      ) : onFunctions ? (
+        <b>Functions</b>
       ) : (
         <b>Sessions</b>
       )}

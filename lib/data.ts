@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { env } from "./env";
+import { llmCostUsd, ttsCostUsd, sttCostUsd } from "./cost";
 
 // Server-side data access for the dashboard (service-role; RLS-bypassing).
 
@@ -24,6 +25,11 @@ export type DashboardStats = {
   active: number;
   withIssues: number;
   avgDurationSec: number | null;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTtsChars: number;
+  totalSttSec: number;
+  estimatedCostUsd: number;
 };
 
 export const PAGE_SIZE = 25;
@@ -75,18 +81,11 @@ export async function listSessions(
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = db();
-  const [totals, issueAnalyses, durations] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("status", { count: "exact" }),
-    supabase
-      .from("analyses")
-      .select("session_id, verdict")
-      .eq("kind", "issue_detection"),
-    supabase
-      .from("sessions")
-      .select("duration_sec")
-      .not("duration_sec", "is", null),
+  const [totals, issueAnalyses, durations, metricsData] = await Promise.all([
+    supabase.from("sessions").select("status", { count: "exact" }),
+    supabase.from("analyses").select("session_id, verdict").eq("kind", "issue_detection"),
+    supabase.from("sessions").select("duration_sec").not("duration_sec", "is", null),
+    supabase.from("sessions").select("metrics").not("metrics", "is", null),
   ]);
 
   const sessions = totals.data ?? [];
@@ -102,7 +101,34 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const durs = (durations.data ?? []).map((s) => s.duration_sec as number);
   const avgDurationSec = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
 
-  return { total, completed, abandoned, active, withIssues, avgDurationSec };
+  // Aggregate token usage + cost across all sessions
+  let totalInputTokens = 0, totalOutputTokens = 0, totalTtsChars = 0, totalSttSec = 0;
+  let estimatedCostUsd = 0;
+  for (const row of metricsData.data ?? []) {
+    const usage: any[] = (row.metrics as any)?.model_usage ?? [];
+    for (const u of usage) {
+      if (u.type === "llm_usage") {
+        const inp = u.input_tokens ?? 0;
+        const out = u.output_tokens ?? 0;
+        totalInputTokens += inp;
+        totalOutputTokens += out;
+        estimatedCostUsd += llmCostUsd(u.model ?? "", inp, out);
+      } else if (u.type === "tts_usage") {
+        const chars = u.characters_count ?? 0;
+        totalTtsChars += chars;
+        estimatedCostUsd += ttsCostUsd(u.model ?? "tts-1", chars);
+      } else if (u.type === "stt_usage") {
+        const secs = u.audio_duration ?? 0;
+        totalSttSec += secs;
+        estimatedCostUsd += sttCostUsd(secs);
+      }
+    }
+  }
+
+  return {
+    total, completed, abandoned, active, withIssues, avgDurationSec,
+    totalInputTokens, totalOutputTokens, totalTtsChars, totalSttSec, estimatedCostUsd,
+  };
 }
 
 export async function getSessionDetail(id: string) {
