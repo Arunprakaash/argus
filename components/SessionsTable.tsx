@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { statusBadgeClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import type { SessionRow } from "@/lib/data";
 import { PAGE_SIZE } from "@/lib/data";
@@ -19,7 +18,14 @@ export default function SessionsTable({
   totalPages: number;
 }) {
   const router = useRouter();
+  const params = useSearchParams();
   const from = (page - 1) * PAGE_SIZE + 1;
+
+  function pageHref(p: number) {
+    const next = new URLSearchParams(params.toString());
+    next.set("page", String(p));
+    return `?${next.toString()}`;
+  }
   const to = Math.min(page * PAGE_SIZE, total);
 
   return (
@@ -73,11 +79,11 @@ export default function SessionsTable({
           <span className="pg-info">{from}–{to} of {total}</span>
           <div className="pg-btns">
             {page > 1
-              ? <Link href={`?page=${page - 1}`} className="btn">← Prev</Link>
+              ? <a href={pageHref(page - 1)} className="btn">← Prev</a>
               : <span className="btn" style={{ opacity: 0.35, cursor: "not-allowed" }}>← Prev</span>}
             <span className="pg-curr">{page} / {totalPages}</span>
             {page < totalPages
-              ? <Link href={`?page=${page + 1}`} className="btn">Next →</Link>
+              ? <a href={pageHref(page + 1)} className="btn">Next →</a>
               : <span className="btn" style={{ opacity: 0.35, cursor: "not-allowed" }}>Next →</span>}
           </div>
         </div>

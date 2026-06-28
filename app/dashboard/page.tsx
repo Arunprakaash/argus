@@ -50,9 +50,8 @@ export default async function SessionsPage({
 
       <Suspense>
         <SessionsFilter />
+        <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
       </Suspense>
-
-      <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
     </div>
   );
 }
