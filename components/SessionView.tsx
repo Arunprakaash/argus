@@ -104,11 +104,6 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
         {/* ── Transcript ─────────────────────────────────────── */}
         {tab === "Transcript" && (
           <>
-            <div className="audio-bar">
-              {data.recordingUrl
-                ? <audio controls preload="none" src={data.recordingUrl} />
-                : <div className="muted" style={{ fontSize: 13 }}>No recording captured. Egress runs when Argus is deployed with a public LiveKit webhook.</div>}
-            </div>
             <div className="transcript">
               {data.transcript.length === 0
                 ? <div className="empty">No transcript.</div>
@@ -125,6 +120,7 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
             </div>
           </>
         )}
+
 
         {/* ── Analysis ───────────────────────────────────────── */}
         {tab === "Analysis" && (
