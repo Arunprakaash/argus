@@ -5,6 +5,16 @@ import { statusBadgeClass, severityClass, fmtDuration, fmtDate, titleCase } from
 import { useSetBreadcrumbTail } from "./breadcrumb-context";
 import NotesPanel from "./NotesPanel";
 
+const REVIEW_STATUSES = ["pending", "reviewed", "flagged", "cleared"] as const;
+type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+const REVIEW_CLASS: Record<ReviewStatus, string> = {
+  pending: "gray",
+  reviewed: "green",
+  flagged: "amber",
+  cleared: "blue",
+};
+
 function num(n: unknown): string {
   const v = Number(n);
   return Number.isFinite(v) ? v.toLocaleString() : String(n);
@@ -55,6 +65,20 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
 
   useSetBreadcrumbTail(s.room_name);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Transcript");
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(s.review_status ?? "pending");
+  const [reviewSaving, setReviewSaving] = useState(false);
+
+  async function setReview(next: ReviewStatus) {
+    if (next === reviewStatus || reviewSaving) return;
+    setReviewSaving(true);
+    setReviewStatus(next);
+    await fetch(`/api/sessions/${s.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ review_status: next }),
+    });
+    setReviewSaving(false);
+  }
 
   const judge =
     coverage?.agreesWithAgent === true ? "✓ Correct"
@@ -75,7 +99,21 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
             {agentName} · {titleCase(s.interview_type)} · <span className="mono">{s.room_name}</span>
           </div>
         </div>
-        <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
+          <div className="review-btngroup">
+            {REVIEW_STATUSES.map((rs) => (
+              <button
+                key={rs}
+                className={`review-btn${reviewStatus === rs ? ` active ${REVIEW_CLASS[rs]}` : ""}`}
+                onClick={() => setReview(rs)}
+                disabled={reviewSaving}
+              >
+                {rs}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Verdict strip */}

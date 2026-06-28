@@ -11,13 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; status?: string; period?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string; period?: string; review?: string }>;
 }) {
-  const { page: pageParam, q, status, period } = await searchParams;
+  const { page: pageParam, q, status, period, review } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? 1));
 
   const [{ sessions, total }, stats] = await Promise.all([
-    listSessions({ page, q, status, period }),
+    listSessions({ page, q, status, period, review }),
     getDashboardStats(),
   ]);
 

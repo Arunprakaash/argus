@@ -1,9 +1,8 @@
 import { ModelInfoMap } from "llm-info";
 
-// Hardcoded TTS/STT prices (OpenAI, rarely changes)
 const TTS_PRICE_PER_CHAR = 15 / 1_000_000;       // tts-1: $15/1M chars
 const TTS_HD_PRICE_PER_CHAR = 30 / 1_000_000;    // tts-1-hd: $30/1M chars
-const STT_PRICE_PER_SEC = 0.006 / 60;            // whisper-1: $0.006/min
+const STT_PRICE_PER_SEC = 0.0059 / 60;           // deepgram nova-3: $0.0059/min
 
 export function llmCostUsd(model: string, inputTokens: number, outputTokens: number): number {
   const info = (ModelInfoMap as Record<string, any>)[model];

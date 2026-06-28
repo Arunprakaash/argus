@@ -57,7 +57,7 @@ function TtsTip({ models }: { models: TtsUsageStat[] }) {
 function SttTip({ stats }: { stats: SttUsageStat }) {
   return (
     <div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(255,255,255,.5)", marginBottom: 4 }}>whisper-1</div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "rgba(255,255,255,.5)", marginBottom: 4 }}>deepgram/nova-3</div>
       <div className="tip-row"><span>Duration</span><span>{Math.round(stats.durationSec)}s ({(stats.durationSec / 60).toFixed(1)} min)</span></div>
       <div className="tip-row"><span>Rate</span><span>${stats.pricePerMin}/min</span></div>
       <div className="tip-row tip-total"><span>Cost</span><span>{fmtUsd(stats.costUsd)}</span></div>

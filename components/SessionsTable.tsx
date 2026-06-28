@@ -6,6 +6,13 @@ import { statusBadgeClass, fmtDuration, fmtDate, titleCase } from "@/lib/format"
 import type { SessionRow } from "@/lib/data";
 import { PAGE_SIZE } from "@/lib/data";
 
+const REVIEW_CLASS: Record<string, string> = {
+  pending: "gray",
+  reviewed: "green",
+  flagged: "amber",
+  cleared: "blue",
+};
+
 export default function SessionsTable({
   sessions,
   page,
@@ -31,10 +38,10 @@ export default function SessionsTable({
               <th>Agent</th>
               <th>Type</th>
               <th>Status</th>
+              <th>Review</th>
               <th>Completion</th>
               <th>Duration</th>
               <th>Started</th>
-              <th>Room</th>
             </tr>
           </thead>
           <tbody>
@@ -56,10 +63,14 @@ export default function SessionsTable({
                     {s.status}
                   </span>
                 </td>
+                <td>
+                  <span className={`badge ${REVIEW_CLASS[s.review_status] ?? "gray"}`}>
+                    {s.review_status}
+                  </span>
+                </td>
                 <td className="muted">{titleCase(s.completion_reason)}</td>
                 <td>{fmtDuration(s.duration_sec)}</td>
                 <td className="muted">{fmtDate(s.started_at || s.created_at)}</td>
-                <td className="mono">{s.room_name}</td>
               </tr>
             ))}
           </tbody>

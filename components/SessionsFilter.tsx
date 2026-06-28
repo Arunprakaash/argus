@@ -10,6 +10,14 @@ const STATUSES = [
   { value: "abandoned", label: "Abandoned" },
 ];
 
+const REVIEWS = [
+  { value: "", label: "Any" },
+  { value: "pending", label: "Pending" },
+  { value: "flagged", label: "Flagged" },
+  { value: "reviewed", label: "Reviewed" },
+  { value: "cleared", label: "Cleared" },
+];
+
 const PERIODS = [
   { value: "all", label: "All time" },
   { value: "today", label: "Today" },
@@ -25,6 +33,7 @@ export default function SessionsFilter() {
 
   const q = params.get("q") ?? "";
   const status = params.get("status") ?? "";
+  const review = params.get("review") ?? "";
   const period = params.get("period") ?? "all";
 
   const push = useCallback(
@@ -60,6 +69,19 @@ export default function SessionsFilter() {
             onClick={() => push({ status: s.value })}
           >
             {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Review pills */}
+      <div className="filter-pills" style={{ borderLeft: "1px solid var(--border)" }}>
+        {REVIEWS.map((r) => (
+          <button
+            key={r.value}
+            className={`pill${review === r.value ? " active" : ""}`}
+            onClick={() => push({ review: r.value })}
+          >
+            {r.label}
           </button>
         ))}
       </div>
