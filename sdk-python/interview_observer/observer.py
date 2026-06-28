@@ -49,9 +49,11 @@ SESSION_EVENTS = (
     "close",
 )
 
-# High-frequency, low-value events the SDK does not forward at all (the dashboard
-# rolls usage from the session totals; interim transcripts are dropped below).
-_SKIP_SEND = {"metrics_collected", "speech_created", "overlapping_speech", "session_usage_updated"}
+# High-frequency, low-value events the SDK does not forward at all. We DO forward
+# session_usage_updated (cumulative usage) so the dashboard can show token/audio
+# usage — the backend rolls only the latest snapshot onto the session and never
+# stores it as an event row. Interim transcripts are dropped in the handler below.
+_SKIP_SEND = {"metrics_collected", "speech_created", "overlapping_speech"}
 
 
 def _now_iso() -> str:

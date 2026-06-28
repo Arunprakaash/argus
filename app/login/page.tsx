@@ -33,21 +33,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 360, margin: "8rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: "1.4rem" }}>Sign in</h1>
-      <p style={{ color: "#666", fontSize: ".9rem" }}>Interview Observer dashboard</p>
+    <main style={{ maxWidth: 340, margin: "9rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 650, letterSpacing: "-0.02em", margin: 0 }}>Argus</h1>
+      <p style={{ color: "var(--muted)", fontSize: ".9rem", marginTop: 4 }}>
+        The watchful guardian for your interview agent. Sign in to continue.
+      </p>
 
       <button
+        className="btn"
         onClick={signInWithGoogle}
-        style={{ width: "100%", padding: ".7rem", marginTop: "1.5rem", cursor: "pointer" }}
+        style={{ width: "100%", justifyContent: "center", padding: ".65rem", marginTop: "1.5rem" }}
       >
         Continue with Google
       </button>
 
-      <div style={{ textAlign: "center", color: "#999", margin: "1rem 0" }}>or</div>
+      <div style={{ textAlign: "center", color: "var(--muted-2)", margin: "1rem 0", fontSize: 13 }}>or</div>
 
       {sent ? (
-        <p>Check your email for a magic sign-in link.</p>
+        <p className="muted">Check your email for a magic sign-in link.</p>
       ) : (
         <form onSubmit={signInWithEmail}>
           <input
@@ -56,9 +59,12 @@ export default function LoginPage() {
             placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: "100%", padding: ".6rem", boxSizing: "border-box" }}
+            style={{
+              width: "100%", padding: ".6rem .7rem", boxSizing: "border-box",
+              border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 14,
+            }}
           />
-          <button type="submit" style={{ width: "100%", padding: ".7rem", marginTop: ".5rem", cursor: "pointer" }}>
+          <button type="submit" className="btn" style={{ width: "100%", justifyContent: "center", padding: ".65rem", marginTop: ".5rem" }}>
             Send magic link
           </button>
         </form>
