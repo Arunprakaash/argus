@@ -46,7 +46,7 @@ export type DashboardStats = {
   sttStats: SttUsageStat;
 };
 
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = 8;
 
 export type SessionFilters = {
   page?: number;
