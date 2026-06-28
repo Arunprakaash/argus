@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Interview Observer",
   description: "Observability & QA dashboard for the LiveKit interview agent.",
