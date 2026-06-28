@@ -18,6 +18,17 @@ export type SessionRow = {
   created_at: string;
 };
 
+export type ModelUsageStat = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  inputPricePerM: number;
+  outputPricePerM: number;
+};
+export type TtsUsageStat = { model: string; chars: number; costUsd: number; pricePerMChars: number };
+export type SttUsageStat = { durationSec: number; costUsd: number; pricePerMin: number };
+
 export type DashboardStats = {
   total: number;
   completed: number;
@@ -30,6 +41,9 @@ export type DashboardStats = {
   totalTtsChars: number;
   totalSttSec: number;
   estimatedCostUsd: number;
+  llmByModel: ModelUsageStat[];
+  ttsByModel: TtsUsageStat[];
+  sttStats: SttUsageStat;
 };
 
 export const PAGE_SIZE = 25;
@@ -101,26 +115,51 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const durs = (durations.data ?? []).map((s) => s.duration_sec as number);
   const avgDurationSec = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
 
-  // Aggregate token usage + cost across all sessions
+  // Aggregate token usage + cost across all sessions, keeping per-model breakdown
   let totalInputTokens = 0, totalOutputTokens = 0, totalTtsChars = 0, totalSttSec = 0;
   let estimatedCostUsd = 0;
+  const llmMap: Record<string, ModelUsageStat> = {};
+  const ttsMap: Record<string, TtsUsageStat> = {};
+  let sttDur = 0, sttCost = 0;
+
+  const { ModelInfoMap } = await import("llm-info");
+
   for (const row of metricsData.data ?? []) {
     const usage: any[] = (row.metrics as any)?.model_usage ?? [];
     for (const u of usage) {
       if (u.type === "llm_usage") {
+        const model = u.model ?? "unknown";
         const inp = u.input_tokens ?? 0;
         const out = u.output_tokens ?? 0;
+        const info = (ModelInfoMap as Record<string, any>)[model];
+        const inPrice = info?.pricePerMillionInputTokens ?? 0;
+        const outPrice = info?.pricePerMillionOutputTokens ?? 0;
+        const cost = (inp * inPrice + out * outPrice) / 1_000_000;
         totalInputTokens += inp;
         totalOutputTokens += out;
-        estimatedCostUsd += llmCostUsd(u.model ?? "", inp, out);
+        estimatedCostUsd += cost;
+        if (!llmMap[model]) llmMap[model] = { model, inputTokens: 0, outputTokens: 0, costUsd: 0, inputPricePerM: inPrice, outputPricePerM: outPrice };
+        llmMap[model].inputTokens += inp;
+        llmMap[model].outputTokens += out;
+        llmMap[model].costUsd += cost;
       } else if (u.type === "tts_usage") {
+        const model = u.model ?? "tts-1";
         const chars = u.characters_count ?? 0;
+        const isHd = model.includes("hd");
+        const pricePerMChars = isHd ? 30 : 15;
+        const cost = (chars * pricePerMChars) / 1_000_000;
         totalTtsChars += chars;
-        estimatedCostUsd += ttsCostUsd(u.model ?? "tts-1", chars);
+        estimatedCostUsd += cost;
+        if (!ttsMap[model]) ttsMap[model] = { model, chars: 0, costUsd: 0, pricePerMChars };
+        ttsMap[model].chars += chars;
+        ttsMap[model].costUsd += cost;
       } else if (u.type === "stt_usage") {
         const secs = u.audio_duration ?? 0;
+        const cost = sttCostUsd(secs);
         totalSttSec += secs;
-        estimatedCostUsd += sttCostUsd(secs);
+        sttDur += secs;
+        sttCost += cost;
+        estimatedCostUsd += cost;
       }
     }
   }
@@ -128,6 +167,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     total, completed, abandoned, active, withIssues, avgDurationSec,
     totalInputTokens, totalOutputTokens, totalTtsChars, totalSttSec, estimatedCostUsd,
+    llmByModel: Object.values(llmMap),
+    ttsByModel: Object.values(ttsMap),
+    sttStats: { durationSec: sttDur, costUsd: sttCost, pricePerMin: 0.006 },
   };
 }
 

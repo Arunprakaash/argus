@@ -3,7 +3,7 @@ import SessionsTable from "@/components/SessionsTable";
 import SessionsFilter from "@/components/SessionsFilter";
 import LiveIndicator from "@/components/LiveIndicator";
 import { fmtDuration } from "@/lib/format";
-import { fmtTokens, fmtUsd } from "@/lib/cost";
+import UsageStrip from "@/components/UsageStrip";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -61,29 +61,17 @@ export default async function SessionsPage({
         </div>
       </div>
 
-      {/* Usage + cost strip */}
-      <div className="stats-strip" style={{ marginBottom: 18 }}>
-        <div className="stat-tile">
-          <div className="st-l">LLM input</div>
-          <div className="st-v">{fmtTokens(stats.totalInputTokens)}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">LLM output</div>
-          <div className="st-v">{fmtTokens(stats.totalOutputTokens)}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">TTS chars</div>
-          <div className="st-v">{fmtTokens(stats.totalTtsChars)}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="st-l">STT seconds</div>
-          <div className="st-v">{Math.round(stats.totalSttSec)}s</div>
-        </div>
-        <div className="stat-tile" style={{ gridColumn: "span 2" }}>
-          <div className="st-l">Estimated cost</div>
-          <div className="st-v">{fmtUsd(stats.estimatedCostUsd)}</div>
-        </div>
-      </div>
+      {/* Usage + cost strip with info tooltips */}
+      <UsageStrip
+        totalInputTokens={stats.totalInputTokens}
+        totalOutputTokens={stats.totalOutputTokens}
+        totalTtsChars={stats.totalTtsChars}
+        totalSttSec={stats.totalSttSec}
+        estimatedCostUsd={stats.estimatedCostUsd}
+        llmByModel={stats.llmByModel}
+        ttsByModel={stats.ttsByModel}
+        sttStats={stats.sttStats}
+      />
 
       {/* Filter bar — needs Suspense for useSearchParams */}
       <Suspense>
