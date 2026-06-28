@@ -1,25 +1,63 @@
-import { listSessions } from "@/lib/data";
+import { listSessions, getDashboardStats, PAGE_SIZE } from "@/lib/data";
 import SessionsTable from "@/components/SessionsTable";
+import LiveIndicator from "@/components/LiveIndicator";
+import { fmtDuration } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function SessionsPage() {
-  const sessions = await listSessions();
-  const completed = sessions.filter((s) => s.status === "completed").length;
-  const abandoned = sessions.filter((s) => s.status === "abandoned").length;
+export default async function SessionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam ?? 1));
+  const [{ sessions, total }, stats] = await Promise.all([
+    listSessions(page),
+    getDashboardStats(),
+  ]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="content">
-      <h1 className="page">Sessions</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <h1 className="page" style={{ marginBottom: 0 }}>Sessions</h1>
+        <LiveIndicator initial={stats.active} />
+      </div>
       <p className="sub">Every interview the agent has run — transcript, audio, flags and AI analysis.</p>
 
-      <div className="grid cols-3" style={{ marginBottom: 18 }}>
-        <div className="card stat-card"><div className="stat-l">Total sessions</div><div className="stat">{sessions.length}</div></div>
-        <div className="card stat-card"><div className="stat-l">Completed</div><div className="stat">{completed}</div></div>
-        <div className="card stat-card"><div className="stat-l">Abandoned</div><div className="stat">{abandoned}</div></div>
+      {/* Stats strip */}
+      <div className="stats-strip">
+        <div className="stat-tile">
+          <div className="st-l">Total</div>
+          <div className="st-v">{stats.total}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">Completed</div>
+          <div className="st-v">{stats.completed}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">Abandoned</div>
+          <div className="st-v">{stats.abandoned}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">With issues</div>
+          <div className="st-v">{stats.withIssues}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">Issue rate</div>
+          <div className="st-v">
+            {stats.total > 0 ? `${Math.round((stats.withIssues / stats.total) * 100)}%` : "—"}
+          </div>
+        </div>
+        <div className="stat-tile">
+          <div className="st-l">Avg duration</div>
+          <div className="st-v">{stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}</div>
+        </div>
       </div>
 
-      <SessionsTable sessions={sessions} />
+      <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
     </div>
   );
 }

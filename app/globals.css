@@ -240,6 +240,48 @@ audio { width: 100%; margin-top: 4px; }
 .btn-primary:hover { background: var(--text); border-color: var(--text); }
 .btn-primary:disabled, .btn:disabled { opacity: .5; cursor: not-allowed; }
 
+/* ── Stats strip ─────────────────────────────────────────── */
+.stats-strip {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 0;
+  border: 1px solid var(--border); margin-bottom: 18px;
+}
+.stat-tile {
+  padding: 14px 16px; border-right: 1px solid var(--border);
+}
+.stat-tile:last-child { border-right: 0; }
+.st-l { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-2); margin-bottom: 4px; }
+.st-v { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+@media (max-width: 860px) { .stats-strip { grid-template-columns: repeat(3, 1fr); } .stat-tile:nth-child(3) { border-right: 0; } }
+
+/* ── Live indicator ──────────────────────────────────────── */
+.live-banner {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500; color: var(--accent);
+  border: 1px solid var(--border-strong); padding: 4px 10px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.live-pulse {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1.4s ease-in-out infinite; margin-right: 4px;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.75); }
+}
+
+/* ── Pagination ───────────────────────────────────────────── */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; font-size: 13px;
+}
+.pg-info { color: var(--muted); }
+.pg-btns { display: flex; align-items: center; gap: 8px; }
+.pg-curr { color: var(--muted); min-width: 48px; text-align: center; }
+
 /* ── Premium polish ───────────────────────────────────────── */
 body { letter-spacing: -0.006em; }
 ::selection { background: var(--accent); color: #fff; }

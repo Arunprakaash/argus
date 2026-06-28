@@ -17,15 +17,61 @@ export type SessionRow = {
   created_at: string;
 };
 
-export async function listSessions(limit = 100): Promise<SessionRow[]> {
-  const { data } = await db()
+export type DashboardStats = {
+  total: number;
+  completed: number;
+  abandoned: number;
+  active: number;
+  withIssues: number;
+  avgDurationSec: number | null;
+};
+
+export const PAGE_SIZE = 25;
+
+export async function listSessions(page = 1): Promise<{ sessions: SessionRow[]; total: number }> {
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const { data, count } = await db()
     .from("sessions")
     .select(
       "id, room_name, status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at",
+      { count: "exact" },
     )
     .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as SessionRow[];
+    .range(from, to);
+  return { sessions: (data ?? []) as SessionRow[], total: count ?? 0 };
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const supabase = db();
+  const [totals, issueAnalyses, durations] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select("status", { count: "exact" }),
+    supabase
+      .from("analyses")
+      .select("session_id, verdict")
+      .eq("kind", "issue_detection"),
+    supabase
+      .from("sessions")
+      .select("duration_sec")
+      .not("duration_sec", "is", null),
+  ]);
+
+  const sessions = totals.data ?? [];
+  const total = totals.count ?? 0;
+  const completed = sessions.filter((s) => s.status === "completed").length;
+  const abandoned = sessions.filter((s) => s.status === "abandoned").length;
+  const active = sessions.filter((s) => s.status === "active").length;
+
+  const withIssues = (issueAnalyses.data ?? []).filter(
+    (a) => ((a.verdict as any)?.findings?.length ?? 0) > 0,
+  ).length;
+
+  const durs = (durations.data ?? []).map((s) => s.duration_sec as number);
+  const avgDurationSec = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
+
+  return { total, completed, abandoned, active, withIssues, avgDurationSec };
 }
 
 export async function getSessionDetail(id: string) {
@@ -46,7 +92,6 @@ export async function getSessionDetail(id: string) {
       .limit(500),
   ]);
 
-  // Signed URL for the latest audio recording, if any.
   let recordingUrl: string | null = null;
   const rec = (recordings.data ?? [])[0] as { bucket_key?: string } | undefined;
   if (rec?.bucket_key) {
@@ -56,7 +101,6 @@ export async function getSessionDetail(id: string) {
     recordingUrl = signed?.signedUrl ?? null;
   }
 
-  // index analyses by kind for easy access
   const byKind: Record<string, any> = {};
   for (const a of analyses.data ?? []) byKind[(a as any).kind] = a;
 
