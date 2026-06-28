@@ -17,6 +17,7 @@
     "livekit-server-sdk": "^2.13.0",
     "llm-info": "^1.0.69",
     "next": "^15.5.0",
+    "openai": "^6.45.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^3.25.0"

@@ -1,6 +1,7 @@
 import { listSessions, getDashboardStats, PAGE_SIZE } from "@/lib/data";
 import SessionsTable from "@/components/SessionsTable";
 import SessionsFilter from "@/components/SessionsFilter";
+import TranscriptSearch from "@/components/TranscriptSearch";
 import LiveIndicator from "@/components/LiveIndicator";
 import DashboardStrip from "@/components/DashboardStrip";
 import { fmtDuration } from "@/lib/format";
@@ -52,6 +53,7 @@ export default async function SessionsPage({
         <SessionsFilter />
         <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
       </Suspense>
+      <TranscriptSearch />
     </div>
   );
 }
