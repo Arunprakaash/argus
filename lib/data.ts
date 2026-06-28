@@ -28,10 +28,21 @@ export type DashboardStats = {
 
 export const PAGE_SIZE = 25;
 
-export async function listSessions(page = 1): Promise<{ sessions: SessionRow[]; total: number }> {
+export type SessionFilters = {
+  page?: number;
+  q?: string;
+  status?: string;
+  period?: string;
+};
+
+export async function listSessions(
+  filters: SessionFilters = {},
+): Promise<{ sessions: SessionRow[]; total: number }> {
+  const { page = 1, q, status, period } = filters;
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-  const { data, count } = await db()
+
+  let query = db()
     .from("sessions")
     .select(
       "id, room_name, status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at",
@@ -39,6 +50,26 @@ export async function listSessions(page = 1): Promise<{ sessions: SessionRow[]; 
     )
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  if (q?.trim()) {
+    query = query.or(`candidate_name.ilike.%${q.trim()}%,room_name.ilike.%${q.trim()}%`);
+  }
+
+  if (status && ["active", "completed", "abandoned"].includes(status)) {
+    query = query.eq("status", status);
+  }
+
+  if (period && period !== "all") {
+    const days = period === "today" ? 0 : period === "7d" ? 7 : period === "30d" ? 30 : null;
+    if (days !== null) {
+      const cutoff = new Date();
+      if (days === 0) cutoff.setHours(0, 0, 0, 0);
+      else cutoff.setDate(cutoff.getDate() - days);
+      query = query.gte("created_at", cutoff.toISOString());
+    }
+  }
+
+  const { data, count } = await query;
   return { sessions: (data ?? []) as SessionRow[], total: count ?? 0 };
 }
 

@@ -1,19 +1,22 @@
 import { listSessions, getDashboardStats, PAGE_SIZE } from "@/lib/data";
 import SessionsTable from "@/components/SessionsTable";
+import SessionsFilter from "@/components/SessionsFilter";
 import LiveIndicator from "@/components/LiveIndicator";
 import { fmtDuration } from "@/lib/format";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string; period?: string }>;
 }) {
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, q, status, period } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? 1));
+
   const [{ sessions, total }, stats] = await Promise.all([
-    listSessions(page),
+    listSessions({ page, q, status, period }),
     getDashboardStats(),
   ]);
 
@@ -56,6 +59,11 @@ export default async function SessionsPage({
           <div className="st-v">{stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}</div>
         </div>
       </div>
+
+      {/* Filter bar — needs Suspense for useSearchParams */}
+      <Suspense>
+        <SessionsFilter />
+      </Suspense>
 
       <SessionsTable sessions={sessions} page={page} total={total} totalPages={totalPages} />
     </div>
