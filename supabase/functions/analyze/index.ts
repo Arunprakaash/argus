@@ -134,7 +134,7 @@ CORRECT behaviors (DO NOT FLAG):
 
 REAL issues to flag (concrete failures only, with direct evidence from the transcript):
 - hallucination: SIA invents facts, wrong information, or fabricates content not in the question list
-- off_script: SIA asks a question on a completely new topic not derived from the fixed question list at all (clarifying follow-ups on the candidate's own answer are NOT off_script)
+- off_script: SIA asks a question on a completely new topic with no connection to any fixed question. SIA is ALLOWED to ask up to 2 follow-up questions per fixed question to probe the candidate's answer deeper — these are never off_script even if they introduce a sub-topic. Only flag if SIA diverges into a topic entirely unrelated to all fixed questions
 - coaching: SIA gives the candidate the answer, a strong hint, or positive evaluative feedback like "that's correct" or "great answer"
 - premature_completion: SIA ends the interview before all fixed questions received a substantive answer from the candidate
 - flow_violation: SIA skips the wrap-up closing check entirely, or restarts the interview sequence from the beginning
