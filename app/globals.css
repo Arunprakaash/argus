@@ -278,32 +278,33 @@ audio { width: 100%; margin-top: 4px; }
   50% { opacity: .4; transform: scale(.75); }
 }
 
-/* ── Search + filter bar ─────────────────────────────────── */
+/* ── Search + filter bar — single unified strip ───────────── */
 .filter-bar {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+  display: flex; align-items: stretch; margin-bottom: 12px;
+  border: 1px solid var(--border-strong); overflow: hidden;
 }
 .filter-search {
-  flex: 1; min-width: 200px; padding: .5rem .7rem;
-  border: 1px solid var(--border-strong); font-size: 13px; font-family: inherit;
+  flex: 1; min-width: 200px; padding: .55rem .9rem;
+  border: none; border-right: 1px solid var(--border-strong);
+  font-size: 13px; font-family: inherit;
   color: var(--text); background: var(--bg); outline: none;
 }
-.filter-search:focus { border-color: var(--accent); }
 .filter-search::placeholder { color: var(--muted-2); }
-.filter-pills { display: flex; }
+.filter-pills { display: flex; border-right: 1px solid var(--border-strong); }
 .pill {
-  padding: 5px 12px; border: 1px solid var(--border-strong); border-right: 0;
+  padding: 0 14px; border: none; border-right: 1px solid var(--border-strong);
   background: var(--bg); font-size: 12px; font-weight: 500; color: var(--muted);
   cursor: pointer; font-family: inherit; white-space: nowrap;
 }
-.pill:last-child { border-right: 1px solid var(--border-strong); }
+.pill:last-child { border-right: none; }
 .pill:hover { background: var(--panel-2); color: var(--text); }
 .pill.active { background: var(--panel-2); color: var(--text); font-weight: 600; }
 .filter-select {
-  padding: .45rem .7rem; border: 1px solid var(--border-strong);
+  padding: 0 .9rem; border: none;
   font-size: 12px; font-family: inherit; color: var(--muted);
   background: var(--bg); cursor: pointer; outline: none;
 }
-.filter-select:focus { border-color: var(--accent); }
+.filter-select:focus { background: var(--panel); }
 
 /* ── Pagination ───────────────────────────────────────────── */
 .pagination {
