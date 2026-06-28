@@ -52,7 +52,7 @@ export default function SessionsTable({
                 <td>{s.agent_name || "—"}</td>
                 <td>{titleCase(s.interview_type)}</td>
                 <td>
-                  <span className={`badge dot ${statusBadgeClass(s.status)}`}>
+                  <span className={`badge ${s.status === "active" ? "" : "dot "}${statusBadgeClass(s.status)}`}>
                     {s.status === "active" ? <span className="live-pulse" /> : null}
                     {s.status}
                   </span>
