@@ -178,7 +178,7 @@ export async function getSessionDetail(id: string) {
   const { data: session } = await supabase.from("sessions").select("*").eq("id", id).single();
   if (!session) return null;
 
-  const [turns, flags, analyses, recordings, events, annotations] = await Promise.all([
+  const [turns, flags, analyses, recordings, events, toolEvents, annotations] = await Promise.all([
     supabase.from("transcript_turns").select("*").eq("session_id", id).order("ts"),
     supabase.from("flags").select("*").eq("session_id", id).order("ts"),
     supabase.from("analyses").select("*").eq("session_id", id),
@@ -189,6 +189,12 @@ export async function getSessionDetail(id: string) {
       .eq("session_id", id)
       .order("ts", { ascending: true })
       .limit(500),
+    supabase
+      .from("events")
+      .select("id, ts, payload")
+      .eq("session_id", id)
+      .eq("type", "function_tools_executed")
+      .order("ts", { ascending: true }),
     supabase
       .from("annotations")
       .select("id, note, author, created_at")
@@ -216,6 +222,7 @@ export async function getSessionDetail(id: string) {
     recordings: recordings.data ?? [],
     recordingUrl,
     timeline: events.data ?? [],
+    toolEvents: toolEvents.data ?? [],
     annotations: annotations.data ?? [],
   };
 }

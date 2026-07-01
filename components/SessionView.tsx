@@ -34,6 +34,100 @@ const USAGE_TITLE: Record<string, string> = {
 
 const TABS = ["Transcript", "Analysis", "Questions", "Usage", "Notes", "Timeline"] as const;
 
+const TOOL_LABELS: Record<string, string> = {
+  handle_out_of_context:   "Out of context",
+  handle_profanity:        "Profanity detected",
+  handle_prompt_injection: "Prompt injection attempt",
+  postpone_interview:      "Candidate tried to postpone",
+  complete_interview:      "Interview completed",
+};
+const TOOL_COLOR = "#556c72";
+
+type MergedItem =
+  | { _kind: "turn"; id: string; role: string; text: string; ts: string }
+  | { _kind: "tool"; _idx: number; ts: string; name: string; args: any; output: any };
+
+function ToolCallRow({ item }: { item: Extract<MergedItem, { _kind: "tool" }> }) {
+  const [open, setOpen] = useState(false);
+  const c = TOOL_COLOR;
+  return (
+    <div style={{ margin: "3px 0" }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "8px 14px", cursor: "pointer",
+          background: open ? `${c}35` : `${c}20`,
+          fontSize: 12,
+        }}
+      >
+        <span style={{ color: c, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", flexShrink: 0 }}>Tool call</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text)" }}>{TOOL_LABELS[item.name] ?? item.name}</span>
+        <span className="ts" style={{ marginLeft: "auto" }}>{fmtDate(item.ts)}</span>
+        <span style={{ color: "var(--muted)", fontSize: 10 }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div style={{ background: `${c}0d`, borderTop: `1px solid ${c}30`, padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {item.args != null && (
+            <div>
+              <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--muted)", marginBottom: 3, letterSpacing: "0.06em" }}>Arguments</div>
+              <pre style={{ margin: 0, fontFamily: "var(--mono)", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "var(--text)", background: "var(--bg)", padding: "8px", border: "1px solid var(--border)" }}>
+                {typeof item.args === "string" ? item.args : JSON.stringify(item.args, null, 2)}
+              </pre>
+            </div>
+          )}
+          {item.output != null && (
+            <div>
+              <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--muted)", marginBottom: 3, letterSpacing: "0.06em" }}>Output</div>
+              <pre style={{ margin: 0, fontFamily: "var(--mono)", fontSize: 11, whiteSpace: "pre-wrap", wordBreak: "break-all", color: "var(--text)", background: "var(--bg)", padding: "8px", border: "1px solid var(--border)" }}>
+                {typeof item.output === "string" ? item.output : JSON.stringify(item.output, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TranscriptWithTools({ transcript, toolEvents, agentName }: { transcript: any[]; toolEvents: any[]; agentName: string }) {
+  const toolItems: Extract<MergedItem, { _kind: "tool" }>[] = [];
+  let idx = 0;
+  for (const ev of toolEvents) {
+    const calls: any[] = ev.payload?.function_calls ?? [];
+    const outputs: any[] = ev.payload?.function_call_outputs ?? [];
+    calls.forEach((c: any, i: number) => {
+      toolItems.push({ _kind: "tool", _idx: idx++, ts: ev.ts, name: c.name ?? "", args: c.arguments ?? null, output: outputs[i] ?? null });
+    });
+  }
+  const merged: MergedItem[] = [
+    ...transcript.map((t: any) => ({ _kind: "turn" as const, ...t })),
+    ...toolItems,
+  ].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+  if (merged.length === 0) return <div className="empty">No transcript.</div>;
+
+  return (
+    <div className="transcript">
+      {merged.map((item) => {
+        if (item._kind === "turn") {
+          return (
+            <div className={`turn ${item.role}`} key={item.id}>
+              <div className="avatar">{(item.role === "assistant" ? agentName || "A" : "C").slice(0, 1).toUpperCase()}</div>
+              <div>
+                <div className="turn-role">{item.role === "assistant" ? agentName : "Candidate"}</div>
+                <div className="txt">{item.text}</div>
+                <div className="ts" suppressHydrationWarning>{fmtDate(item.ts)}</div>
+              </div>
+            </div>
+          );
+        }
+        return <ToolCallRow key={`tool-${item._idx}`} item={item} />;
+      })}
+    </div>
+  );
+}
+
 function Tile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="vtile">
@@ -128,22 +222,7 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
 
         {/* ── Transcript ─────────────────────────────────────── */}
         {tab === "Transcript" && (
-          <>
-            <div className="transcript">
-              {data.transcript.length === 0
-                ? <div className="empty">No transcript.</div>
-                : data.transcript.map((t: any) => (
-                  <div className={`turn ${t.role}`} key={t.id}>
-                    <div className="avatar">{(t.role === "assistant" ? agentName || "A" : "C").slice(0, 1).toUpperCase()}</div>
-                    <div>
-                      <div className="turn-role">{t.role === "assistant" ? agentName : "Candidate"}</div>
-                      <div className="txt">{t.text}</div>
-                      <div className="ts">{fmtDate(t.ts)}</div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </>
+          <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} agentName={agentName} />
         )}
 
 
