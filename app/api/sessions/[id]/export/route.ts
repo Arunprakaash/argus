@@ -1,20 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionDetail } from "@/lib/data";
-import { fmtDuration } from "@/lib/format";
+import { fmtDuration, fmtDate } from "@/lib/format";
+import * as XLSX from "xlsx";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function esc(v: unknown): string {
-  const s = v == null ? "" : String(v);
-  return s.includes(",") || s.includes('"') || s.includes("\n")
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
-}
-
-function row(...cols: unknown[]): string {
-  return cols.map(esc).join(",");
-}
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -27,62 +17,83 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const missing: string[] = coverage?.missing ?? [];
   const fixedQ: string[] = s.fixed_questions ?? [];
 
-  const lines: string[] = [];
+  const wb = XLSX.utils.book_new();
 
-  // ── Session summary ──────────────────────────────────────────
-  lines.push("section,key,value");
-  lines.push(row("summary", "candidate", s.candidate_name ?? ""));
-  lines.push(row("summary", "room", s.room_name));
-  lines.push(row("summary", "agent", s.agent_name ?? ""));
-  lines.push(row("summary", "interview_type", s.interview_type ?? ""));
-  lines.push(row("summary", "status", s.status));
-  lines.push(row("summary", "started_at", s.started_at ?? ""));
-  lines.push(row("summary", "duration", s.duration_sec ? fmtDuration(s.duration_sec) : ""));
-  lines.push(row("summary", "coverage", fixedQ.length ? `${fixedQ.length - missing.length}/${fixedQ.length}` : ""));
-  lines.push(row("summary", "issues_detected", issues?.findings?.length ?? 0));
-  lines.push(row("summary", "judge_verdict", coverage?.agreesWithAgent === true ? "correct" : coverage?.agreesWithAgent === false ? "disagreed" : ""));
-  lines.push("");
+  // ── Sheet 1: Summary ────────────────────────────────────────────
+  const summaryRows = [
+    ["Field", "Value"],
+    ["Candidate", s.candidate_name ?? ""],
+    ["Room", s.room_name],
+    ["Agent", s.agent_name ?? ""],
+    ["Interview Type", s.interview_type ?? ""],
+    ["Status", s.status],
+    ["Completion Reason", s.completion_reason ?? ""],
+    ["Started At", s.started_at ? fmtDate(s.started_at) : ""],
+    ["Ended At", s.ended_at ? fmtDate(s.ended_at) : ""],
+    ["Duration", s.duration_sec ? fmtDuration(s.duration_sec) : ""],
+    ["Questions Coverage", fixedQ.length ? `${fixedQ.length - missing.length} / ${fixedQ.length} asked` : ""],
+    ["Issues Detected", issues?.findings?.length ?? 0],
+    ["Judge Verdict", coverage?.agreesWithAgent === true ? "✓ Correct" : coverage?.agreesWithAgent === false ? "✗ Disagreed" : "—"],
+    ["Session ID", s.id],
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary["!cols"] = [{ wch: 22 }, { wch: 48 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-  // ── Questions ────────────────────────────────────────────────
+  // ── Sheet 2: Questions ──────────────────────────────────────────
   if (fixedQ.length) {
-    lines.push("section,status,question");
-    for (const q of fixedQ) {
-      lines.push(row("question", missing.includes(q) ? "missing" : "asked", q));
-    }
-    lines.push("");
+    const qRows = [["#", "Status", "Question"]];
+    fixedQ.forEach((q, i) => {
+      qRows.push([(i + 1) as any, missing.includes(q) ? "Missing" : "Asked", q]);
+    });
+    const wsQ = XLSX.utils.aoa_to_sheet(qRows);
+    wsQ["!cols"] = [{ wch: 4 }, { wch: 10 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, wsQ, "Questions");
   }
 
-  // ── Issues ───────────────────────────────────────────────────
+  // ── Sheet 3: Issues ─────────────────────────────────────────────
   if (issues?.findings?.length) {
-    lines.push("section,severity,category,evidence");
-    for (const f of issues.findings) {
-      lines.push(row("issue", f.severity, f.category, f.evidence));
-    }
-    lines.push("");
+    const iRows = [["#", "Severity", "Category", "Evidence"]];
+    issues.findings.forEach((f: any, i: number) => {
+      iRows.push([(i + 1) as any, f.severity, f.category, f.evidence]);
+    });
+    const wsI = XLSX.utils.aoa_to_sheet(iRows);
+    wsI["!cols"] = [{ wch: 4 }, { wch: 10 }, { wch: 22 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, wsI, "Issues");
   }
 
-  // ── Transcript ───────────────────────────────────────────────
-  lines.push("section,turn,timestamp,role,speaker,text");
+  // ── Sheet 4: Transcript ─────────────────────────────────────────
+  const txRows = [["Turn", "Timestamp", "Role", "Speaker", "Message"]];
   data.transcript.forEach((t: any, i: number) => {
     const speaker = t.role === "assistant" ? (s.agent_name ?? "Agent") : (s.candidate_name ?? "Candidate");
-    lines.push(row("transcript", i + 1, t.ts, t.role, speaker, t.text));
+    const time = t.ts && s.started_at
+      ? `${Math.round((new Date(t.ts).getTime() - new Date(s.started_at).getTime()) / 1000)}s`
+      : t.ts ?? "";
+    txRows.push([(i + 1) as any, time, t.role, speaker, t.text]);
   });
+  const wsTx = XLSX.utils.aoa_to_sheet(txRows);
+  wsTx["!cols"] = [{ wch: 5 }, { wch: 10 }, { wch: 10 }, { wch: 18 }, { wch: 100 }];
+  XLSX.utils.book_append_sheet(wb, wsTx, "Transcript");
 
-  // ── Notes ────────────────────────────────────────────────────
+  // ── Sheet 5: Notes ──────────────────────────────────────────────
   if (data.annotations?.length) {
-    lines.push("");
-    lines.push("section,author,created_at,note");
-    for (const n of data.annotations as any[]) {
-      lines.push(row("note", n.author ?? "", n.created_at, n.note));
-    }
+    const nRows = [["#", "Author", "Created At", "Note"]];
+    (data.annotations as any[]).forEach((n, i) => {
+      nRows.push([(i + 1) as any, n.author ?? "", fmtDate(n.created_at), n.note]);
+    });
+    const wsN = XLSX.utils.aoa_to_sheet(nRows);
+    wsN["!cols"] = [{ wch: 4 }, { wch: 18 }, { wch: 20 }, { wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, wsN, "Notes");
   }
 
-  const filename = `${s.candidate_name ?? s.room_name}-${s.started_at?.slice(0, 10) ?? "session"}.csv`
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  const filename = `${s.candidate_name ?? s.room_name}-${s.started_at?.slice(0, 10) ?? "session"}.xlsx`
     .replace(/[^a-z0-9\-_.]/gi, "_");
 
-  return new NextResponse(lines.join("\n"), {
+  return new NextResponse(buf, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
