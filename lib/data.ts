@@ -179,7 +179,7 @@ export async function getSessionDetail(id: string) {
   if (!session) return null;
 
   const [turns, flags, analyses, recordings, events, toolEvents, annotations] = await Promise.all([
-    supabase.from("transcript_turns").select("*").eq("session_id", id).order("ts"),
+    supabase.from("transcript_turns").select("id, session_id, role, text, ts, interrupted").eq("session_id", id).order("ts"),
     supabase.from("flags").select("*").eq("session_id", id).order("ts"),
     supabase.from("analyses").select("*").eq("session_id", id),
     supabase.from("recordings").select("*").eq("session_id", id),

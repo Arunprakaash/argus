@@ -44,7 +44,7 @@ const TOOL_LABELS: Record<string, string> = {
 const TOOL_COLOR = "#556c72";
 
 type MergedItem =
-  | { _kind: "turn"; id: string; role: string; text: string; ts: string }
+  | { _kind: "turn"; id: string; role: string; text: string; ts: string; interrupted?: boolean }
   | { _kind: "tool"; _idx: number; ts: string; name: string; args: any; output: any };
 
 function ToolCallRow({ item }: { item: Extract<MergedItem, { _kind: "tool" }> }) {
@@ -112,12 +112,17 @@ function TranscriptWithTools({ transcript, toolEvents, agentName }: { transcript
       {merged.map((item) => {
         if (item._kind === "turn") {
           return (
-            <div className={`turn ${item.role}`} key={item.id}>
+            <div className={`turn ${item.role}${item.interrupted ? " interrupted" : ""}`} key={item.id}>
               <div className="avatar">{(item.role === "assistant" ? agentName || "A" : "C").slice(0, 1).toUpperCase()}</div>
               <div>
                 <div className="turn-role">{item.role === "assistant" ? agentName : "Candidate"}</div>
                 <div className="txt">{item.text}</div>
-                <div className="ts" suppressHydrationWarning>{fmtDate(item.ts)}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="ts" suppressHydrationWarning>{fmtDate(item.ts)}</div>
+                  {item.interrupted && (
+                    <span style={{ fontSize: 10, color: "var(--muted)", letterSpacing: "0.04em", textTransform: "uppercase" }}>interrupted</span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -182,6 +187,7 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
           </div>
           <div className="muted" style={{ fontSize: 13 }}>
             {agentName} · {titleCase(s.interview_type)} · <span className="mono">{s.room_name}</span>
+            {s.started_at && <> · <span suppressHydrationWarning>{fmtDate(s.started_at)}</span>{s.ended_at && <span suppressHydrationWarning> – {fmtDate(s.ended_at)}</span>}</>}
           </div>
         </div>
         <a
