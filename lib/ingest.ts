@@ -10,6 +10,13 @@ const NOISE_EVENT_TYPES = new Set([
   "overlapping_speech",
 ]);
 
+const VISION_EVENT_TO_FLAG_TYPE: Record<string, string> = {
+  vision_no_video_track: "vision_no_video_track",
+  vision_no_face_detected: "vision_no_face_detected",
+  vision_multiple_faces: "vision_multiple_faces",
+  vision_mobile_device_detected: "vision_mobile_device_detected",
+};
+
 // Map LiveKit CloseReason → our session.status + whether the interview finished cleanly.
 function statusFromCloseReason(reason: unknown): "completed" | "abandoned" | "error" {
   switch (reason) {
@@ -105,6 +112,19 @@ export async function processBatch(
   let endedAt: string | undefined;
 
   for (const e of events) {
+    if (e.source === "vision_proctor") {
+      const flagType = VISION_EVENT_TO_FLAG_TYPE[e.type];
+      if (flagType) {
+        flags.push({
+          session_id: sessionId,
+          type: flagType,
+          ts: e.ts,
+          data: e.data,
+        });
+      }
+      continue;
+    }
+
     switch (e.type) {
       case "conversation_item_added": {
         const item = (e.data.item ?? {}) as Record<string, unknown>;

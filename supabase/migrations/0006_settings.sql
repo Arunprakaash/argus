@@ -25,7 +25,8 @@ insert into public.settings (key, value) values (
     "notify_on": {
       "issues": true,
       "judge_disagree": true,
-      "abandoned": true
+      "abandoned": true,
+      "proctoring": true
     }
   }'::jsonb
 ) on conflict do nothing;

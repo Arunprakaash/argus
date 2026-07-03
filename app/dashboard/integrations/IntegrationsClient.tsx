@@ -5,7 +5,7 @@ import { useState } from "react";
 interface SlackSettings {
   webhook_url: string;
   enabled: boolean;
-  notify_on: { issues: boolean; judge_disagree: boolean; abandoned: boolean };
+  notify_on: { issues: boolean; judge_disagree: boolean; abandoned: boolean; proctoring: boolean };
 }
 
 export default function IntegrationsClient({ slack: initial }: { slack: SlackSettings }) {
@@ -117,6 +117,11 @@ export default function IntegrationsClient({ slack: initial }: { slack: SlackSet
                 <input type="checkbox" checked={slack.notify_on.abandoned}
                   onChange={e => setNotifyOn("abandoned", e.target.checked)} />
                 <span>Interview abandoned / not completed cleanly</span>
+              </label>
+              <label className="toggle-row">
+                <input type="checkbox" checked={slack.notify_on.proctoring}
+                  onChange={e => setNotifyOn("proctoring", e.target.checked)} />
+                <span>Vision proctoring flags detected</span>
               </label>
             </div>
           </div>

@@ -40,7 +40,7 @@ create index if not exists sessions_created_at_idx  on public.sessions (created_
 create table if not exists public.events (
   id          bigint generated always as identity primary key,
   session_id  uuid not null references public.sessions(id) on delete cascade,
-  source      text not null check (source in ('session','room','webhook')),
+  source      text not null check (source in ('session','room','webhook','vision_proctor')),
   type        text not null,                    -- verbatim native event name
   ts          timestamptz not null,
   payload     jsonb not null default '{}'::jsonb,

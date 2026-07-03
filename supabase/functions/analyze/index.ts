@@ -235,14 +235,23 @@ async function processJob(sessionId: string) {
 
 async function maybeNotifySlack(sessionId: string, _: unknown) {
   const { data: cfg } = await supabase.from("settings").select("value").eq("key", "slack_integration").single();
-  const settings = cfg?.value as { webhook_url: string; enabled: boolean; notify_on: { issues: boolean; judge_disagree: boolean; abandoned: boolean } } | null;
+  const settings = cfg?.value as {
+    webhook_url: string;
+    enabled: boolean;
+    notify_on: {
+      issues: boolean;
+      judge_disagree: boolean;
+      abandoned: boolean;
+      proctoring?: boolean;
+    };
+  } | null;
   if (!settings?.enabled || !settings?.webhook_url) return;
 
   // Fetch fresh results after all writes
   const [{ data: session }, { data: analyses }, { data: flags }] = await Promise.all([
     supabase.from("sessions").select("candidate_name, room_name, status, completion_reason, interview_type").eq("id", sessionId).single(),
     supabase.from("analyses").select("kind, verdict").eq("session_id", sessionId),
-    supabase.from("flags").select("id").eq("session_id", sessionId),
+    supabase.from("flags").select("type, ts, data").eq("session_id", sessionId).order("ts"),
   ]);
 
   const byKind: Record<string, any> = {};
@@ -251,11 +260,15 @@ async function maybeNotifySlack(sessionId: string, _: unknown) {
   const coverage = byKind["coverage_recheck"];
   const issues = byKind["issue_detection"];
   const completion = byKind["completion"];
+  const proctoringFlags = (flags ?? []).filter((flag: any) =>
+    typeof flag.type === "string" && flag.type.startsWith("vision_"),
+  );
 
   const shouldNotify = (
     (settings.notify_on.issues && (issues?.findings?.length ?? 0) > 0) ||
     (settings.notify_on.judge_disagree && coverage?.agreesWithAgent === false) ||
-    (settings.notify_on.abandoned && completion?.cleanlyCompleted === false)
+    (settings.notify_on.abandoned && completion?.cleanlyCompleted === false) ||
+    (settings.notify_on.proctoring !== false && proctoringFlags.length > 0)
   );
   if (!shouldNotify) return;
 
@@ -278,6 +291,15 @@ async function maybeNotifySlack(sessionId: string, _: unknown) {
   }
   if (settings.notify_on.abandoned && completion?.cleanlyCompleted === false) {
     lines.push(`*Interview not cleanly completed* — reason: ${completion?.reason ?? "unknown"}`);
+    lines.push("");
+  }
+  if (settings.notify_on.proctoring !== false && proctoringFlags.length > 0) {
+    lines.push(`*Vision proctoring flags (${proctoringFlags.length}):*`);
+    for (const f of proctoringFlags.slice(0, 5)) {
+      const elapsed = f.data?.elapsed_interview_seconds;
+      const suffix = elapsed === undefined ? "" : ` at ${elapsed}s`;
+      lines.push(`• ${f.type}${suffix}`);
+    }
     lines.push("");
   }
 

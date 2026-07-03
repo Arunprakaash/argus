@@ -66,7 +66,7 @@ export const FLAG_TOOL_TO_TYPE: Record<string, string> = {
 // One event envelope. `type` is the verbatim native LiveKit event name.
 export const eventEnvelope = z.object({
   roomName: z.string().min(1),
-  source: z.enum(["session", "room"]),
+  source: z.enum(["session", "room", "vision_proctor"]),
   type: z.string().min(1),
   // ISO-8601 timestamp (the observer stamps each event)
   ts: z.string().datetime({ offset: true }),
