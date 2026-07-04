@@ -142,6 +142,103 @@ function Tile({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+type QuestionStatus = "asked" | "missing" | "pending";
+
+type QuestionItem = { index: number; text: string; status: QuestionStatus };
+
+function QuestionRow({ item }: { item: QuestionItem }) {
+  const icon = item.status === "asked" ? "✓" : item.status === "missing" ? "○" : "—";
+  return (
+    <div className={`q-row q-row-${item.status}`}>
+      <span className={`q-check q-check-${item.status}`} aria-hidden>{icon}</span>
+      <span className="q-num">{item.index}</span>
+      <span className="q-text">{item.text}</span>
+    </div>
+  );
+}
+
+function QuestionsPanel({
+  fixedQuestions,
+  coverageReady,
+  missing,
+  askedCount,
+}: {
+  fixedQuestions: string[];
+  coverageReady: boolean;
+  missing: string[];
+  askedCount: number;
+}) {
+  const items: QuestionItem[] = fixedQuestions.map((text, i) => ({
+    index: i + 1,
+    text,
+    status: !coverageReady ? "pending" : missing.includes(text) ? "missing" : "asked",
+  }));
+  const missingItems = items.filter((item) => item.status === "missing");
+  const askedItems = items.filter((item) => item.status === "asked");
+  const missingCount = missingItems.length;
+  const total = fixedQuestions.length;
+  const progressPct = coverageReady && total > 0 ? Math.round((askedCount / total) * 100) : 0;
+
+  let statusLine: React.ReactNode;
+  if (!coverageReady) {
+    statusLine = <span className="q-status-muted">Coverage analysis pending…</span>;
+  } else if (missingCount === 0) {
+    statusLine = "All questions were asked";
+  } else {
+    statusLine = (
+      <span className="q-status-warn">
+        {missingCount} question{missingCount !== 1 ? "s" : ""} never asked
+      </span>
+    );
+  }
+
+  const renderList = (list: QuestionItem[], muted?: boolean) => (
+    <div className={`q-list${muted ? " q-list-muted" : ""}`}>
+      {list.map((item) => <QuestionRow key={item.index} item={item} />)}
+    </div>
+  );
+
+  return (
+    <div className="q-panel">
+      <div className="q-summary">
+        <div className="q-summary-top">
+          <span className="q-summary-count">
+            {coverageReady ? `${askedCount} of ${total} asked` : `${total} question${total !== 1 ? "s" : ""}`}
+          </span>
+          {coverageReady && total > 0 && (
+            <span className="q-summary-pct">{progressPct}%</span>
+          )}
+        </div>
+        {coverageReady && total > 0 && (
+          <div className="q-progress" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="q-progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+        )}
+        <div className="q-status">{statusLine}</div>
+      </div>
+
+      {!coverageReady
+        ? renderList(items)
+        : missingCount === 0
+        ? renderList(items)
+        : (
+          <>
+            <div className="q-section">
+              <div className="q-section-h">Missing ({missingCount})</div>
+              {renderList(missingItems)}
+            </div>
+            {askedItems.length > 0 && (
+              <div className="q-section">
+                <div className="q-section-h">Asked ({askedItems.length})</div>
+                {renderList(askedItems, true)}
+              </div>
+            )}
+          </>
+        )}
+    </div>
+  );
+}
+
 export default function SessionView({
   data,
   authorLabel,
@@ -157,7 +254,8 @@ export default function SessionView({
   const fixedQuestions: string[] = s.fixed_questions ?? [];
   const modelUsage: any[] = s.metrics?.model_usage ?? [];
   const missing: string[] = coverage?.missing ?? [];
-  const askedCount = fixedQuestions.length - missing.length;
+  const coverageReady = coverage != null;
+  const askedCount = coverageReady ? fixedQuestions.length - missing.length : 0;
 
   useSetBreadcrumbTail(s.room_name);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Transcript");
@@ -269,10 +367,9 @@ export default function SessionView({
                       </div>
                     </div>
                     {missing.length > 0 && (
-                      <div className="an-missing">
-                        <div className="an-missing-h">Never asked</div>
-                        <ul className="qlist">{missing.map((q, i) => <li key={i}>{q}</li>)}</ul>
-                      </div>
+                      <button type="button" className="q-link" onClick={() => setTab("Questions")}>
+                        View {missing.length} missing question{missing.length !== 1 ? "s" : ""} →
+                      </button>
                     )}
                   </>
                 )}
@@ -358,19 +455,14 @@ export default function SessionView({
 
         {/* ── Questions ──────────────────────────────────────── */}
         {tab === "Questions" && (
-          <div style={{ maxWidth: 680, margin: "0 auto" }}>
-            {fixedQuestions.length === 0
-              ? <div className="empty">No fixed questions configured for this session.</div>
-              : fixedQuestions.map((q, i) => {
-                const asked = !missing.includes(q);
-                return (
-                  <div className={`q-row${asked ? "" : " q-missing"}`} key={i}>
-                    <span className={`badge ${asked ? "green" : "amber"}`}>{asked ? "asked" : "missing"}</span>
-                    <span className="q-text">{q}</span>
-                  </div>
-                );
-              })}
-          </div>
+          fixedQuestions.length === 0
+            ? <div className="empty">No fixed questions configured for this session.</div>
+            : <QuestionsPanel
+                fixedQuestions={fixedQuestions}
+                coverageReady={coverageReady}
+                missing={missing}
+                askedCount={askedCount}
+              />
         )}
 
         {/* ── Usage ──────────────────────────────────────────── */}

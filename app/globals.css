@@ -233,10 +233,59 @@ audio { width: 100%; margin-top: 4px; }
 .finding-card .ev { font-size: 13px; color: var(--muted); line-height: 1.55; }
 
 /* Questions tab */
-.q-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.q-panel { max-width: 680px; margin: 0 auto; }
+.q-summary {
+  padding: 14px 16px; margin-bottom: 16px;
+  border: 1px solid var(--border); background: var(--panel);
+}
+.q-summary-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.q-summary-count { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.q-summary-pct { font-size: 12px; font-family: var(--mono); color: var(--muted-2); }
+.q-progress {
+  height: 4px; margin-top: 10px; background: var(--border);
+  overflow: hidden;
+}
+.q-progress-fill { height: 100%; background: var(--accent); transition: width .2s ease; }
+.q-status { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.q-status-muted { color: var(--muted-2); }
+.q-status-warn { color: var(--text); font-weight: 600; }
+.q-section { margin-bottom: 18px; }
+.q-section:last-child { margin-bottom: 0; }
+.q-section-h {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--muted-2); margin-bottom: 6px;
+}
+.q-list { border: 1px solid var(--border); }
+.q-list-muted .q-text { color: var(--muted); }
+.q-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
 .q-row:last-child { border-bottom: 0; }
-.q-row.q-missing { background: var(--panel); padding: 12px 10px; margin-bottom: 2px; border-bottom-color: transparent; }
-.q-text { font-size: 14px; line-height: 1.5; padding-top: 2px; }
+.q-row-missing { border-left: 2px solid var(--border-strong); padding-left: 10px; }
+.q-row-asked { background: var(--panel); }
+.q-row-pending { background: var(--panel); }
+.q-check {
+  flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  border: 1px solid var(--border-strong); background: var(--bg); color: var(--text);
+}
+.q-check-asked { color: var(--text); }
+.q-check-missing { color: var(--muted-2); }
+.q-check-pending { color: var(--muted-2); font-weight: 500; }
+.q-num {
+  flex-shrink: 0; width: 18px; margin-top: 2px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted-2); text-align: right;
+}
+.q-text { flex: 1; font-size: 14px; line-height: 1.5; min-width: 0; }
+.q-link {
+  margin-top: 14px; padding: 0; border: 0; background: none;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--accent);
+  cursor: pointer; text-align: left;
+}
+.q-link:hover { color: var(--text); text-decoration: underline; }
 
 /* ── Forms / Integrations ─────────────────────────────────── */
 .inp {
