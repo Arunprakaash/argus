@@ -37,6 +37,85 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Dashboard: Annotations",
+      "item": [
+        {
+          "name": "Add Session Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{session_cookie}}",
+                "type": "text",
+                "description": "Supabase auth session cookie from a signed-in browser session."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Example QA note — false positive on proctoring flag.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/annotations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "{{session_id}}",
+                "annotations"
+              ]
+            },
+            "description": "Creates a note on a session. Author is derived server-side from the signed-in user's email local part. Requires a valid Supabase session cookie (401 without auth)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Session Note",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "{{session_cookie}}",
+                "type": "text",
+                "description": "Supabase auth session cookie from a signed-in browser session."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annotationId\": \"{{annotation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/annotations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "{{session_id}}",
+                "annotations"
+              ]
+            },
+            "description": "Deletes a note from a session. Requires a valid Supabase session cookie (401 without auth)."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -46,6 +125,18 @@
     },
     {
       "key": "ingest_api_key",
+      "value": ""
+    },
+    {
+      "key": "session_id",
+      "value": ""
+    },
+    {
+      "key": "annotation_id",
+      "value": ""
+    },
+    {
+      "key": "session_cookie",
       "value": ""
     }
   ]

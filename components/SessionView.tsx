@@ -142,7 +142,15 @@ function Tile({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export default function SessionView({ data, agentName }: { data: any; agentName: string }) {
+export default function SessionView({
+  data,
+  agentName,
+  authorLabel,
+}: {
+  data: any;
+  agentName: string;
+  authorLabel?: string | null;
+}) {
   const s = data.session;
   const coverage = data.analyses["coverage_recheck"]?.verdict;
   const completion = data.analyses["completion"]?.verdict;
@@ -415,7 +423,7 @@ export default function SessionView({ data, agentName }: { data: any; agentName:
 
         {/* ── Notes ─────────────────────────────────────────── */}
         {tab === "Notes" && (
-          <NotesPanel sessionId={s.id} initial={data.annotations ?? []} />
+          <NotesPanel sessionId={s.id} initial={data.annotations ?? []} authorLabel={authorLabel} />
         )}
 
         {/* ── Timeline ───────────────────────────────────────── */}

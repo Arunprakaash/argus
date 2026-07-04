@@ -5,10 +5,17 @@ import { fmtDate } from "@/lib/format";
 
 type Annotation = { id: string; note: string; author: string | null; created_at: string };
 
-export default function NotesPanel({ sessionId, initial }: { sessionId: string; initial: Annotation[] }) {
+export default function NotesPanel({
+  sessionId,
+  initial,
+  authorLabel,
+}: {
+  sessionId: string;
+  initial: Annotation[];
+  authorLabel?: string | null;
+}) {
   const [notes, setNotes] = useState<Annotation[]>(initial);
   const [note, setNote] = useState("");
-  const [author, setAuthor] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +27,7 @@ export default function NotesPanel({ sessionId, initial }: { sessionId: string; 
     const res = await fetch(`/api/sessions/${sessionId}/annotations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note, author }),
+      body: JSON.stringify({ note }),
     });
     setSaving(false);
     if (!res.ok) { setError("Failed to save note."); return; }
@@ -65,13 +72,12 @@ export default function NotesPanel({ sessionId, initial }: { sessionId: string; 
             rows={3}
           />
           <div className="note-footer">
-            <input
-              className="note-author-inp"
-              placeholder="Your name (optional)"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary" disabled={saving || !note.trim()}>
+            {authorLabel && (
+              <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>
+                Posting as {authorLabel}
+              </span>
+            )}
+            <button type="submit" className="btn btn-primary" disabled={saving || !note.trim()} style={{ marginLeft: "auto" }}>
               {saving ? "Saving…" : "Add note"}
             </button>
           </div>

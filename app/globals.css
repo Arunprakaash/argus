@@ -357,13 +357,7 @@ audio { width: 100%; margin-top: 4px; }
   background: var(--bg); outline: none; display: block;
 }
 .note-area:focus { background: var(--panel); }
-.note-footer { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 0; background: var(--panel); }
-.note-author-inp {
-  flex: 1; padding: .45rem .7rem; border: 1px solid var(--border-strong);
-  font-size: 13px; font-family: inherit; color: var(--text); background: var(--bg);
-  outline: none; margin-left: 8px;
-}
-.note-author-inp:focus { border-color: var(--accent); }
+.note-footer { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel); }
 
 /* ── Premium polish ───────────────────────────────────────── */
 body { letter-spacing: -0.006em; }
