@@ -37,12 +37,7 @@ export default async function SessionsPage({
         completed={stats.completed}
         abandoned={stats.abandoned}
         withIssues={stats.withIssues}
-        issueRate={stats.total > 0 ? `${Math.round((stats.withIssues / stats.total) * 100)}%` : "—"}
         avgDuration={stats.avgDurationSec != null ? fmtDuration(stats.avgDurationSec) : "—"}
-        totalInputTokens={stats.totalInputTokens}
-        totalOutputTokens={stats.totalOutputTokens}
-        totalTtsChars={stats.totalTtsChars}
-        totalSttSec={stats.totalSttSec}
         estimatedCostUsd={stats.estimatedCostUsd}
         llmByModel={stats.llmByModel}
         ttsByModel={stats.ttsByModel}
