@@ -131,6 +131,127 @@ function buildTimelineMarkers(flags: ReplayFlag[], merged: MergedItem[]): Timeli
   return markers.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
 }
 
+const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
+
+function ReplayControls({
+  videoRef,
+  videoUrl,
+  isPlaying,
+  onTogglePlay,
+  playbackSec,
+  duration,
+  playbackRate,
+  onPlaybackRate,
+}: {
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoUrl: string;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  playbackSec: number;
+  duration: number;
+  playbackRate: number;
+  onPlaybackRate: (rate: number) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const pipSupported = typeof document !== "undefined" && document.pictureInPictureEnabled;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function close(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menuOpen]);
+
+  const togglePiP = async () => {
+    const video = videoRef.current;
+    if (!video || !pipSupported) return;
+    try {
+      if (document.pictureInPictureElement === video) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    } catch {
+      /* user dismissed or unsupported */
+    }
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className="replay-controls">
+      <button
+        type="button"
+        className="icon-btn replay-play-btn"
+        onClick={onTogglePlay}
+        aria-label={isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M8 5.14v13.72L19 12 8 5.14z" />
+          </svg>
+        )}
+      </button>
+      <span className="replay-controls-time mono">
+        {fmtTimecode(playbackSec)}{duration > 0 ? ` / ${fmtTimecode(duration)}` : ""}
+      </span>
+      <div className="replay-controls-spacer" />
+      <div className="replay-menu" ref={menuRef}>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="More video options"
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <circle cx="5" cy="12" r="1.75" />
+            <circle cx="12" cy="12" r="1.75" />
+            <circle cx="19" cy="12" r="1.75" />
+          </svg>
+        </button>
+        {menuOpen && (
+          <div className="replay-menu-panel" role="menu">
+            {pipSupported && (
+              <button type="button" className="replay-menu-item" role="menuitem" onClick={() => { void togglePiP(); }}>
+                Picture-in-picture
+              </button>
+            )}
+            <a
+              href={videoUrl}
+              download="interview-recording.mp4"
+              className="replay-menu-item"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+            >
+              Download
+            </a>
+            <div className="replay-menu-divider" role="separator" />
+            <div className="replay-menu-label">Playback speed</div>
+            {PLAYBACK_SPEEDS.map((rate) => (
+              <button
+                key={rate}
+                type="button"
+                className={`replay-menu-item${playbackRate === rate ? " active" : ""}`}
+                role="menuitemradio"
+                aria-checked={playbackRate === rate}
+                onClick={() => { onPlaybackRate(rate); setMenuOpen(false); }}
+              >
+                {rate === 1 ? "Normal (1×)" : `${rate}×`}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FlagTimeline({
   markers,
   anchor,
@@ -160,9 +281,6 @@ function FlagTimeline({
     <div className="replay-flag-timeline">
       <div className="replay-flag-timeline-head">
         <span className="replay-video-label" style={{ padding: 0 }}>Flags</span>
-        {duration > 0 && (
-          <span className="replay-flag-time mono">{fmtTimecode(playbackSec)} / {fmtTimecode(duration)}</span>
-        )}
       </div>
       {markers.length === 0 ? (
         <div className="replay-flag-empty muted">No behavioral flags raised.</div>
@@ -296,10 +414,29 @@ export default function TranscriptReplayPanel({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
   const [playbackSec, setPlaybackSec] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  const timelineLen = useMemo(
+    () => timelineDuration(videoDuration, durationSec, timelineMarkers, anchor),
+    [videoDuration, durationSec, timelineMarkers, anchor],
+  );
 
   useEffect(() => {
     setVideoUrl(initialVideoUrl);
   }, [initialVideoUrl]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.playbackRate = playbackRate;
+  }, [playbackRate, videoUrl]);
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) safePlay(video);
+    else video.pause();
+  }, []);
 
   const refreshVideoUrl = useCallback(async () => {
     const video = videoRef.current;
@@ -373,20 +510,33 @@ export default function TranscriptReplayPanel({
     <div className="replay-split">
       <div className="replay-video-col">
         <div className="replay-video-label">Interview recording</div>
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          controls
-          preload="auto"
-          playsInline
-          // @ts-expect-error fetchPriority is valid on video in modern browsers
-          fetchPriority="high"
-          className="replay-video"
-          onTimeUpdate={onTimeUpdate}
-          onLoadedMetadata={onVideoMetadata}
-          onDurationChange={onVideoMetadata}
-          onLoadedData={onVideoLoaded}
-        />
+        <div className="replay-video-shell">
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            preload="auto"
+            playsInline
+            // @ts-expect-error fetchPriority is valid on video in modern browsers
+            fetchPriority="high"
+            className="replay-video"
+            onTimeUpdate={onTimeUpdate}
+            onLoadedMetadata={onVideoMetadata}
+            onDurationChange={onVideoMetadata}
+            onLoadedData={onVideoLoaded}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
+          <ReplayControls
+            videoRef={videoRef}
+            videoUrl={videoUrl}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            playbackSec={playbackSec}
+            duration={timelineLen}
+            playbackRate={playbackRate}
+            onPlaybackRate={setPlaybackRate}
+          />
+        </div>
         <FlagTimeline
           markers={timelineMarkers}
           anchor={anchor}
