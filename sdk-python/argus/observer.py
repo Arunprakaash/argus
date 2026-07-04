@@ -1,7 +1,7 @@
-"""Interview Observer — agent-side SDK.
+"""Argus — agent-side SDK.
 
 Attaches to *native* LiveKit events (``@session.on`` / ``@ctx.room.on``) and
-forwards them to the Interview Observer backend. It does NOT call into or depend
+forwards them to the Argus backend. It does NOT call into or depend
 on any of the agent's own functions — the judge decision and proctoring flags are
 derived downstream from the native ``function_tools_executed`` tool-call events.
 
@@ -11,7 +11,7 @@ Failures are swallowed and logged.
 
 Usage (purely additive in the agent):
 
-    from interview_observer import Observer
+    from argus import Observer
 
     observer = Observer(
         base_url=os.environ["OBSERVER_INGEST_URL"],
@@ -31,7 +31,7 @@ import datetime
 import logging
 from typing import Any, Optional
 
-logger = logging.getLogger("interview_observer")
+logger = logging.getLogger("argus")
 
 # Native AgentSession events (livekit/agents/voice/events.py EventTypes).
 SESSION_EVENTS = (
@@ -229,7 +229,7 @@ class Observer:
             # Bounded queue: drop on overflow rather than ever blocking the agent.
             self._dropped += 1
             if self._dropped % 100 == 1:
-                logger.warning("interview_observer: queue full, dropped %d events", self._dropped)
+                logger.warning("argus: queue full, dropped %d events", self._dropped)
 
     def _ensure_task(self) -> None:
         if self._task is None:
@@ -249,7 +249,7 @@ class Observer:
         except asyncio.CancelledError:  # pragma: no cover
             pass
         except Exception:  # pragma: no cover - never let the task kill the agent
-            logger.exception("interview_observer: flush loop crashed")
+            logger.exception("argus: flush loop crashed")
 
     async def _collect_batch(self) -> list[dict[str, Any]]:
         batch: list[dict[str, Any]] = []
@@ -283,10 +283,10 @@ class Observer:
                         if resp.status < 300:
                             return
                         if resp.status in (401, 422):
-                            logger.error("interview_observer: ingest rejected (%d)", resp.status)
+                            logger.error("argus: ingest rejected (%d)", resp.status)
                             return  # not retryable
             except Exception as exc:  # network error
-                logger.debug("interview_observer: flush attempt %d failed: %s", attempt + 1, exc)
+                logger.debug("argus: flush attempt %d failed: %s", attempt + 1, exc)
             await asyncio.sleep(delay)
             delay *= 2
-        logger.warning("interview_observer: dropped batch of %d after retries", len(batch))
+        logger.warning("argus: dropped batch of %d after retries", len(batch))

@@ -1,4 +1,4 @@
-# Interview Observer
+# Argus
 
 Standalone observability & QA dashboard **backend** for the LiveKit interview agent
 (`ai-assessment`). It ingests **native LiveKit events** from the agent, receives **LiveKit
@@ -33,7 +33,7 @@ Everything correlates by **room name**. See the full design in the plan file.
 | `lib/*.ts` | Supabase client, zod schema, auth, LiveKit, pgmq, ingest logic |
 | `supabase/migrations/*.sql` | Schema + pgmq queue + cron schedule template |
 | `supabase/functions/analyze/index.ts` | Scheduled analysis worker (Deno) |
-| `sdk-python/interview_observer/` | Agent-side observer SDK (drop into the agent) |
+| `sdk-python/argus/` | Agent-side observer SDK (drop into the agent) |
 
 ## Setup
 
@@ -66,7 +66,7 @@ In the agent repo, install the SDK (`pip install -e path/to/sdk-python`) and add
 **purely additive**, it does not change interview behavior:
 
 ```python
-from interview_observer import Observer
+from argus import Observer
 
 observer = Observer(
     base_url=os.environ["OBSERVER_INGEST_URL"],   # the deployed dashboard backend

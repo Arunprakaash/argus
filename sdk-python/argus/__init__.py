@@ -1,4 +1,4 @@
-"""Interview Observer agent-side SDK."""
+"""Argus agent-side SDK."""
 
 from .observer import Observer
 

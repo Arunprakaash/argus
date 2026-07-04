@@ -1,5 +1,5 @@
 {
-  "name": "interview-observer",
+  "name": "argus",
   "version": "0.1.0",
   "private": true,
   "description": "Standalone observability/QA dashboard backend for the LiveKit interview agent.",
