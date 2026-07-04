@@ -131,10 +131,20 @@ function buildTimelineMarkers(flags: ReplayFlag[], merged: MergedItem[]): Timeli
   return markers.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
 }
 
+function activeMarkerIdAtTime(markers: TimelineMarker[], anchor: number, currentSec: number): string | null {
+  let active: string | null = null;
+  for (const marker of markers) {
+    if (tsToOffsetSec(marker.ts, anchor) <= currentSec) active = marker.id;
+    else break;
+  }
+  return active;
+}
+
 const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const;
 
 function ReplayControls({
   videoRef,
+  shellRef,
   videoUrl,
   isPlaying,
   onTogglePlay,
@@ -144,6 +154,7 @@ function ReplayControls({
   onPlaybackRate,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  shellRef: React.RefObject<HTMLDivElement | null>;
   videoUrl: string;
   isPlaying: boolean;
   onTogglePlay: () => void;
@@ -153,8 +164,10 @@ function ReplayControls({
   onPlaybackRate: (rate: number) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pipSupported = typeof document !== "undefined" && document.pictureInPictureEnabled;
+  const fsSupported = typeof document !== "undefined" && document.fullscreenEnabled;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -164,6 +177,14 @@ function ReplayControls({
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [menuOpen]);
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === shellRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [shellRef]);
 
   const togglePiP = async () => {
     const video = videoRef.current;
@@ -175,6 +196,17 @@ function ReplayControls({
       /* user dismissed or unsupported */
     }
     setMenuOpen(false);
+  };
+
+  const toggleFullscreen = async () => {
+    const shell = shellRef.current;
+    if (!shell || !fsSupported) return;
+    try {
+      if (document.fullscreenElement === shell) await document.exitFullscreen();
+      else await shell.requestFullscreen();
+    } catch {
+      /* user dismissed or unsupported */
+    }
   };
 
   return (
@@ -200,6 +232,30 @@ function ReplayControls({
         {fmtTimecode(playbackSec)}{duration > 0 ? ` / ${fmtTimecode(duration)}` : ""}
       </span>
       <div className="replay-controls-spacer" />
+      {fsSupported && (
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => { void toggleFullscreen(); }}
+          aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+        >
+          {isFullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+              <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+              <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+              <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+              <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+              <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+            </svg>
+          )}
+        </button>
+      )}
       <div className="replay-menu" ref={menuRef}>
         <button
           type="button"
@@ -269,6 +325,10 @@ function FlagTimeline({
 }) {
   const duration = timelineDuration(videoDuration, durationSec, markers, anchor);
   const playPct = duration > 0 ? Math.min(100, (playbackSec / duration) * 100) : 0;
+  const activeMarkerId = activeMarkerIdAtTime(markers, anchor, playbackSec);
+  const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
+
+  const isListHighlighted = (id: string) => activeMarkerId === id || hoveredMarkerId === id;
 
   const seekFromTrack = (e: React.MouseEvent<HTMLDivElement>) => {
     if (duration <= 0) return;
@@ -313,6 +373,8 @@ function FlagTimeline({
                   style={{ left: `${pct}%` }}
                   title={`${marker.label} · ${fmtTimecode(offset)}`}
                   aria-label={`${marker.label} at ${fmtTimecode(offset)}`}
+                  onMouseEnter={() => setHoveredMarkerId(marker.id)}
+                  onMouseLeave={() => setHoveredMarkerId(null)}
                   onClick={(e) => { e.stopPropagation(); onSeek(offset); }}
                 />
               );
@@ -323,7 +385,13 @@ function FlagTimeline({
               const offset = tsToOffsetSec(marker.ts, anchor);
               return (
                 <li key={marker.id}>
-                  <button type="button" className="replay-flag-item" onClick={() => onSeek(offset)}>
+                  <button
+                    type="button"
+                    className={`replay-flag-item${isListHighlighted(marker.id) ? " highlighted" : ""}`}
+                    onMouseEnter={() => setHoveredMarkerId(marker.id)}
+                    onMouseLeave={() => setHoveredMarkerId(null)}
+                    onClick={() => onSeek(offset)}
+                  >
                     <span className={`badge${marker.vision ? " amber" : ""}`}>{marker.label}</span>
                     <span className="mono muted">{fmtTimecode(offset)}</span>
                   </button>
@@ -404,6 +472,7 @@ export default function TranscriptReplayPanel({
   const timelineMarkers = useMemo(() => buildTimelineMarkers(flags, merged), [flags, merged]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollLockUntil = useRef(0);
@@ -510,7 +579,7 @@ export default function TranscriptReplayPanel({
     <div className="replay-split">
       <div className="replay-video-col">
         <div className="replay-video-label">Interview recording</div>
-        <div className="replay-video-shell">
+        <div className="replay-video-shell" ref={shellRef}>
           <video
             ref={videoRef}
             src={videoUrl}
@@ -528,6 +597,7 @@ export default function TranscriptReplayPanel({
           />
           <ReplayControls
             videoRef={videoRef}
+            shellRef={shellRef}
             videoUrl={videoUrl}
             isPlaying={isPlaying}
             onTogglePlay={togglePlay}
