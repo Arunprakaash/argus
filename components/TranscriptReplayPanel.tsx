@@ -174,8 +174,8 @@ function ReplayControls({
     function close(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
   }, [menuOpen]);
 
   useEffect(() => {
@@ -263,7 +263,7 @@ function ReplayControls({
           aria-label="More video options"
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          onClick={() => setMenuOpen((o) => !o)}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <circle cx="5" cy="12" r="1.75" />

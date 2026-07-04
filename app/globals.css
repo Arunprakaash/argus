@@ -479,11 +479,16 @@ audio { width: 100%; margin-top: 4px; }
   width: 100%;
   height: 100%;
   border: 0;
+  overflow: visible;
 }
 .replay-video-shell:fullscreen .replay-video {
   flex: 1;
   min-height: 0;
   object-fit: contain;
+}
+.replay-video-shell:fullscreen .replay-controls {
+  flex-shrink: 0;
+  overflow: visible;
 }
 .replay-video { display: block; width: 100%; background: #000; border: 0; }
 .replay-controls {
@@ -493,6 +498,9 @@ audio { width: 100%; margin-top: 4px; }
   padding: 8px 10px;
   background: var(--panel);
   border-top: 1px solid var(--border);
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 .replay-controls-spacer { flex: 1; }
 .replay-controls-time { font-size: 12px; color: var(--muted-2); }
@@ -501,14 +509,16 @@ audio { width: 100%; margin-top: 4px; }
 .replay-menu-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
+  bottom: calc(100% + 6px);
+  top: auto;
+  z-index: 100;
   min-width: 188px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
   box-shadow: 0 4px 16px rgba(26, 57, 64, .12);
   padding: 4px 0;
 }
+.replay-video-shell:fullscreen .replay-menu-panel { z-index: 9999; }
 .replay-menu-label {
   padding: 6px 12px 4px;
   font-size: 10px;
