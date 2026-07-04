@@ -186,11 +186,9 @@ export default function SessionsFilter({
             className="filter-search"
             style={{ flex: 1 }}
             type="text"
-            placeholder={inputFocused
-              ? (semanticSearchEnabled
-                ? "Search by name, room, or describe in plain English…"
-                : "Search by name or room…")
-              : ""}
+            placeholder={semanticSearchEnabled
+              ? (inputFocused ? "Search by name, room, or describe in plain English…" : "")
+              : "Search by name or room…"}
             defaultValue={q}
             onChange={handleChange}
             onFocus={() => setInputFocused(true)}
