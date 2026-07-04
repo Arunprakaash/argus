@@ -353,6 +353,8 @@ export default function SessionView({
                 transcript={data.transcript}
                 toolEvents={data.toolEvents ?? []}
                 startedAt={s.started_at}
+                durationSec={s.duration_sec}
+                flags={data.flags ?? []}
               />
             )
             : <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} />

@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtTimecode, titleCase } from "@/lib/format";
+import { FLAG_TOOL_TO_TYPE } from "@/lib/schema";
+
+type ReplayFlag = { id: string | number; type: string; ts: string };
+type TimelineMarker = { id: string; label: string; ts: string; vision?: boolean };
 
 const TOOL_LABELS: Record<string, string> = {
   handle_out_of_context: "Out of context",
@@ -74,6 +78,147 @@ function scrollRowToTop(container: HTMLDivElement, row: HTMLElement) {
   container.scrollTo({ top, behavior: "smooth" });
 }
 
+function safePlay(video: HTMLVideoElement) {
+  void video.play().catch((err: unknown) => {
+    if (err instanceof DOMException && err.name === "AbortError") return;
+  });
+}
+
+function seekVideo(video: HTMLVideoElement, sec: number, playAfter: boolean) {
+  if (!playAfter) {
+    video.currentTime = sec;
+    return;
+  }
+  video.addEventListener(
+    "seeked",
+    () => { safePlay(video); },
+    { once: true },
+  );
+  video.currentTime = sec;
+}
+
+function timelineDuration(
+  videoDuration: number,
+  durationSec: number | null | undefined,
+  markers: TimelineMarker[],
+  anchor: number,
+): number {
+  if (videoDuration > 0) return videoDuration;
+  if (durationSec && durationSec > 0) return durationSec;
+  if (markers.length === 0) return 0;
+  return Math.max(...markers.map((m) => tsToOffsetSec(m.ts, anchor)));
+}
+
+function buildTimelineMarkers(flags: ReplayFlag[], merged: MergedItem[]): TimelineMarker[] {
+  const markers: TimelineMarker[] = flags.map((f) => ({
+    id: `flag-${f.id}`,
+    label: titleCase(f.type),
+    ts: f.ts,
+    vision: f.type.startsWith("vision_"),
+  }));
+
+  for (const item of merged) {
+    if (item._kind !== "tool") continue;
+    const flagType = FLAG_TOOL_TO_TYPE[item.name];
+    if (flagType && flags.some((f) => f.type === flagType && f.ts === item.ts)) continue;
+    markers.push({
+      id: itemKey(item),
+      label: TOOL_LABELS[item.name] ?? titleCase(item.name),
+      ts: item.ts,
+    });
+  }
+
+  return markers.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+}
+
+function FlagTimeline({
+  markers,
+  anchor,
+  durationSec,
+  videoDuration,
+  playbackSec,
+  onSeek,
+}: {
+  markers: TimelineMarker[];
+  anchor: number;
+  durationSec?: number | null;
+  videoDuration: number;
+  playbackSec: number;
+  onSeek: (sec: number) => void;
+}) {
+  const duration = timelineDuration(videoDuration, durationSec, markers, anchor);
+  const playPct = duration > 0 ? Math.min(100, (playbackSec / duration) * 100) : 0;
+
+  const seekFromTrack = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (duration <= 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    onSeek(ratio * duration);
+  };
+
+  return (
+    <div className="replay-flag-timeline">
+      <div className="replay-flag-timeline-head">
+        <span className="replay-video-label" style={{ padding: 0 }}>Flags</span>
+        {duration > 0 && (
+          <span className="replay-flag-time mono">{fmtTimecode(playbackSec)} / {fmtTimecode(duration)}</span>
+        )}
+      </div>
+      {markers.length === 0 ? (
+        <div className="replay-flag-empty muted">No behavioral flags raised.</div>
+      ) : (
+        <>
+          <div
+            className="replay-flag-track"
+            role="slider"
+            aria-valuemin={0}
+            aria-valuemax={duration}
+            aria-valuenow={playbackSec}
+            aria-label="Interview timeline"
+            tabIndex={0}
+            onClick={seekFromTrack}
+            onKeyDown={(e) => {
+              if (duration <= 0) return;
+              if (e.key === "ArrowLeft") { e.preventDefault(); onSeek(Math.max(0, playbackSec - 5)); }
+              if (e.key === "ArrowRight") { e.preventDefault(); onSeek(Math.min(duration, playbackSec + 5)); }
+            }}
+          >
+            {duration > 0 && <div className="replay-flag-playhead" style={{ left: `${playPct}%` }} />}
+            {markers.map((marker) => {
+              const offset = tsToOffsetSec(marker.ts, anchor);
+              const pct = duration > 0 ? Math.min(100, Math.max(0, (offset / duration) * 100)) : 0;
+              return (
+                <button
+                  key={marker.id}
+                  type="button"
+                  className={`replay-flag-marker${marker.vision ? " vision" : ""}`}
+                  style={{ left: `${pct}%` }}
+                  title={`${marker.label} · ${fmtTimecode(offset)}`}
+                  aria-label={`${marker.label} at ${fmtTimecode(offset)}`}
+                  onClick={(e) => { e.stopPropagation(); onSeek(offset); }}
+                />
+              );
+            })}
+          </div>
+          <ul className="replay-flag-list">
+            {markers.map((marker) => {
+              const offset = tsToOffsetSec(marker.ts, anchor);
+              return (
+                <li key={marker.id}>
+                  <button type="button" className="replay-flag-item" onClick={() => onSeek(offset)}>
+                    <span className={`badge${marker.vision ? " amber" : ""}`}>{marker.label}</span>
+                    <span className="mono muted">{fmtTimecode(offset)}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ToolCallRow({ item, active }: { item: Extract<MergedItem, { _kind: "tool" }>; active: boolean }) {
   const [open, setOpen] = useState(false);
   const c = TOOL_COLOR;
@@ -124,6 +269,8 @@ export default function TranscriptReplayPanel({
   transcript,
   toolEvents,
   startedAt,
+  durationSec,
+  flags = [],
 }: {
   sessionId: string;
   videoUrl: string;
@@ -131,9 +278,12 @@ export default function TranscriptReplayPanel({
   transcript: { id: string; role: string; text: string; ts: string; interrupted?: boolean }[];
   toolEvents: { ts: string; payload?: { function_calls?: { name?: string; arguments?: unknown }[]; function_call_outputs?: unknown[] } }[];
   startedAt: string | null;
+  durationSec?: number | null;
+  flags?: ReplayFlag[];
 }) {
   const merged = useMemo(() => mergeTranscript(transcript, toolEvents), [transcript, toolEvents]);
   const anchor = useMemo(() => anchorMs(startedAt, merged), [startedAt, merged]);
+  const timelineMarkers = useMemo(() => buildTimelineMarkers(flags, merged), [flags, merged]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -144,6 +294,8 @@ export default function TranscriptReplayPanel({
 
   const [videoUrl, setVideoUrl] = useState(initialVideoUrl);
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [playbackSec, setPlaybackSec] = useState(0);
 
   useEffect(() => {
     setVideoUrl(initialVideoUrl);
@@ -164,9 +316,8 @@ export default function TranscriptReplayPanel({
     const video = videoRef.current;
     const pending = pendingSeek.current;
     if (!video || !pending) return;
-    video.currentTime = pending.time;
     pendingSeek.current = null;
-    if (pending.play) void video.play();
+    seekVideo(video, pending.time, pending.play);
   }, []);
 
   useEffect(() => {
@@ -187,15 +338,32 @@ export default function TranscriptReplayPanel({
   const onTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    setPlaybackSec(video.currentTime);
     setActiveKey(activeKeyAtTime(merged, anchor, video.currentTime));
+  }, [merged, anchor]);
+
+  const onVideoMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.duration)) return;
+    setVideoDuration(video.duration);
+  }, []);
+
+  const seekToSec = useCallback((sec: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const wasPlaying = !video.paused;
+    seekVideo(video, sec, wasPlaying);
+    setPlaybackSec(sec);
+    setActiveKey(activeKeyAtTime(merged, anchor, sec));
   }, [merged, anchor]);
 
   const seekToTurn = useCallback((item: Extract<MergedItem, { _kind: "turn" }>) => {
     const video = videoRef.current;
     if (!video) return;
     const index = merged.findIndex((m) => m._kind === "turn" && m.id === item.id);
-    video.currentTime = index >= 0 ? itemStartSec(merged, index, anchor) : tsToOffsetSec(item.ts, anchor);
-    void video.play();
+    const sec = index >= 0 ? itemStartSec(merged, index, anchor) : tsToOffsetSec(item.ts, anchor);
+    seekVideo(video, sec, true);
+    setPlaybackSec(sec);
     setActiveKey(item.id);
   }, [merged, anchor]);
 
@@ -215,7 +383,17 @@ export default function TranscriptReplayPanel({
           fetchPriority="high"
           className="replay-video"
           onTimeUpdate={onTimeUpdate}
+          onLoadedMetadata={onVideoMetadata}
+          onDurationChange={onVideoMetadata}
           onLoadedData={onVideoLoaded}
+        />
+        <FlagTimeline
+          markers={timelineMarkers}
+          anchor={anchor}
+          durationSec={durationSec}
+          videoDuration={videoDuration}
+          playbackSec={playbackSec}
+          onSeek={seekToSec}
         />
       </div>
       <div

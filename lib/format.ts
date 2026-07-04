@@ -35,6 +35,13 @@ export function fmtDuration(sec?: number | null): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+export function fmtTimecode(sec?: number | null): string {
+  if (sec == null || !Number.isFinite(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
