@@ -90,7 +90,7 @@ function ToolCallRow({ item }: { item: Extract<MergedItem, { _kind: "tool" }> })
   );
 }
 
-function TranscriptWithTools({ transcript, toolEvents, agentName }: { transcript: any[]; toolEvents: any[]; agentName: string }) {
+function TranscriptWithTools({ transcript, toolEvents }: { transcript: any[]; toolEvents: any[] }) {
   const toolItems: Extract<MergedItem, { _kind: "tool" }>[] = [];
   let idx = 0;
   for (const ev of toolEvents) {
@@ -113,9 +113,9 @@ function TranscriptWithTools({ transcript, toolEvents, agentName }: { transcript
         if (item._kind === "turn") {
           return (
             <div className={`turn ${item.role}${item.interrupted ? " interrupted" : ""}`} key={item.id}>
-              <div className="avatar">{(item.role === "assistant" ? agentName || "A" : "C").slice(0, 1).toUpperCase()}</div>
+              <div className="avatar">{(item.role === "assistant" ? "A" : "C")}</div>
               <div>
-                <div className="turn-role">{item.role === "assistant" ? agentName : "Candidate"}</div>
+                <div className="turn-role">{item.role === "assistant" ? "Agent" : "Candidate"}</div>
                 <div className="txt">{item.text}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div className="ts" suppressHydrationWarning>{fmtDate(item.ts)}</div>
@@ -144,11 +144,9 @@ function Tile({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function SessionView({
   data,
-  agentName,
   authorLabel,
 }: {
   data: any;
-  agentName: string;
   authorLabel?: string | null;
 }) {
   const s = data.session;
@@ -194,7 +192,7 @@ export default function SessionView({
             <span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span>
           </div>
           <div className="muted" style={{ fontSize: 13 }}>
-            {agentName} · {titleCase(s.interview_type)} · <span className="mono">{s.room_name}</span>
+            <span className="mono">{s.room_name}</span>
             {s.started_at && <> · <span suppressHydrationWarning>{fmtDate(s.started_at)}</span>{s.ended_at && <span suppressHydrationWarning> – {fmtDate(s.ended_at)}</span>}</>}
           </div>
         </div>
@@ -236,7 +234,7 @@ export default function SessionView({
 
         {/* ── Transcript ─────────────────────────────────────── */}
         {tab === "Transcript" && (
-          <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} agentName={agentName} />
+          <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} />
         )}
 
 

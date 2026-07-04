@@ -14,8 +14,7 @@ export default async function SessionDetail({ params }: { params: Promise<{ id: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const agentName = (d.session as any).agent_name || "Agent";
   const authorLabel = authorFromEmail(user?.email);
 
-  return <SessionView data={d} agentName={agentName} authorLabel={authorLabel} />;
+  return <SessionView data={d} authorLabel={authorLabel} />;
 }

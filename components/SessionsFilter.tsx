@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition, useState, useRef, useEffect } from "react";
-import { statusBadgeClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
+import { statusBadgeClass, fmtDuration, fmtDate } from "@/lib/format";
 import SessionsTable from "@/components/SessionsTable";
 import type { SessionRow } from "@/lib/data";
 
@@ -256,7 +256,7 @@ export default function SessionsFilter({
               : <table>
                 <thead>
                   <tr>
-                    <th>Candidate</th><th>Agent</th><th>Type</th>
+                    <th>Candidate</th>
                     <th>Status</th><th>Duration</th><th>Started</th><th>Match</th>
                   </tr>
                 </thead>
@@ -264,8 +264,6 @@ export default function SessionsFilter({
                   {nlResults.map((s) => (
                     <tr key={s.id} className="clickable" onClick={() => router.push(`/dashboard/sessions/${s.id}`)}>
                       <td style={{ fontWeight: 600 }}>{s.candidate_name || "Unknown"}</td>
-                      <td>{s.agent_name || "—"}</td>
-                      <td>{titleCase(s.interview_type)}</td>
                       <td><span className={`badge dot ${statusBadgeClass(s.status)}`}>{s.status}</span></td>
                       <td>{fmtDuration(s.duration_sec)}</td>
                       <td className="muted">{fmtDate(s.started_at)}</td>

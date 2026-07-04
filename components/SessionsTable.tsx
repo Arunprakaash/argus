@@ -58,8 +58,6 @@ export default function SessionsTable({
           <thead>
             <tr>
               <th>Candidate</th>
-              <th>Agent</th>
-              <th>Type</th>
               <th>Status</th>
               <th>Completion</th>
               <th>Duration</th>
@@ -69,7 +67,7 @@ export default function SessionsTable({
           </thead>
           <tbody>
             {sessions.length === 0 && (
-              <tr><td colSpan={8}><div className="empty">No sessions yet. Run an interview to see it here.</div></td></tr>
+              <tr><td colSpan={6}><div className="empty">No sessions yet. Run an interview to see it here.</div></td></tr>
             )}
             {sessions.map((s, i) => (
               <tr
@@ -79,8 +77,6 @@ export default function SessionsTable({
                 onClick={() => router.push(`/dashboard/sessions/${s.id}`)}
               >
                 <td style={{ fontWeight: 600 }}>{s.candidate_name || "Unknown"}</td>
-                <td>{s.agent_name || "—"}</td>
-                <td>{titleCase(s.interview_type)}</td>
                 <td>
                   <span className={`badge ${s.status === "active" ? "" : "dot "}${statusBadgeClass(s.status)}`}>
                     {s.status === "active" ? <span className="live-pulse" /> : null}
