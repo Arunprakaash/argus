@@ -69,6 +69,11 @@ function activeKeyAtTime(merged: MergedItem[], anchor: number, currentSec: numbe
   return itemKey(merged[merged.length - 1]);
 }
 
+function scrollRowToTop(container: HTMLDivElement, row: HTMLElement) {
+  const top = row.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  container.scrollTo({ top, behavior: "smooth" });
+}
+
 function ToolCallRow({ item, active }: { item: Extract<MergedItem, { _kind: "tool" }>; active: boolean }) {
   const [open, setOpen] = useState(false);
   const c = TOOL_COLOR;
@@ -174,7 +179,9 @@ export default function TranscriptReplayPanel({
     if (!activeKey || activeKey === lastActiveRef.current) return;
     if (Date.now() < scrollLockUntil.current) return;
     lastActiveRef.current = activeKey;
-    rowRefs.current.get(activeKey)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const container = scrollRef.current;
+    const row = rowRefs.current.get(activeKey);
+    if (container && row) scrollRowToTop(container, row);
   }, [activeKey]);
 
   const onTimeUpdate = useCallback(() => {
