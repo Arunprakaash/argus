@@ -214,12 +214,17 @@ async function processJob(sessionId: string) {
 
   await Promise.all(writes);
 
-  // 4) transcript embedding for semantic search
+  // 4) transcript embedding for semantic search (when enabled in settings)
   try {
-    const text = turnList.map((t) => `${t.role}: ${t.text}`).join("\n").slice(0, 8000);
-    if (text.trim()) {
-      const resp = await openai.embeddings.create({ model: "text-embedding-3-small", input: text });
-      await supabase.from("sessions").update({ transcript_embedding: resp.data[0].embedding }).eq("id", sessionId);
+    const { data: semanticCfg } = await supabase.from("settings").select("value").eq("key", "semantic_search").single();
+    const semanticEnabled = (semanticCfg?.value as { enabled?: boolean } | null)?.enabled ?? false;
+
+    if (semanticEnabled) {
+      const text = turnList.map((t) => `${t.role}: ${t.text}`).join("\n").slice(0, 8000);
+      if (text.trim()) {
+        const resp = await openai.embeddings.create({ model: "text-embedding-3-small", input: text });
+        await supabase.from("sessions").update({ transcript_embedding: resp.data[0].embedding }).eq("id", sessionId);
+      }
     }
   } catch (err) {
     console.error("embedding failed:", err);

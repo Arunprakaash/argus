@@ -1,4 +1,5 @@
 import { listSessions, getDashboardStats, PAGE_SIZE } from "@/lib/data";
+import { getSemanticSearchSettings } from "@/lib/settings";
 import SessionsFilter from "@/components/SessionsFilter";
 import LiveIndicator from "@/components/LiveIndicator";
 import DashboardStrip from "@/components/DashboardStrip";
@@ -15,9 +16,10 @@ export default async function SessionsPage({
   const { page: pageParam, q, status, period } = await searchParams;
   const page = Math.max(1, Number(pageParam ?? 1));
 
-  const [{ sessions, total }, stats] = await Promise.all([
+  const [{ sessions, total }, stats, semanticSearch] = await Promise.all([
     listSessions({ page, q, status, period }),
     getDashboardStats(),
+    getSemanticSearchSettings(),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -48,7 +50,13 @@ export default async function SessionsPage({
       />
 
       <Suspense>
-        <SessionsFilter sessions={sessions} page={page} total={total} totalPages={totalPages} />
+        <SessionsFilter
+          sessions={sessions}
+          page={page}
+          total={total}
+          totalPages={totalPages}
+          semanticSearchEnabled={semanticSearch.enabled}
+        />
       </Suspense>
     </div>
   );

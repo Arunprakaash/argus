@@ -116,6 +116,41 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Dashboard: Semantic Search",
+      "item": [
+        {
+          "name": "Semantic Search Sessions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": \"candidate confused about system design\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions/semantic-search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "semantic-search"
+              ]
+            },
+            "description": "Natural-language session search via transcript embeddings. Returns { sessions: [], disabled: true } when semantic_search.enabled is false in settings (no OpenAI call). When enabled, embeds the query and runs match_sessions."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

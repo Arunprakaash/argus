@@ -31,11 +31,13 @@ export default function SessionsFilter({
   page,
   total,
   totalPages,
+  semanticSearchEnabled = false,
 }: {
   sessions: SessionRow[];
   page: number;
   total: number;
   totalPages: number;
+  semanticSearchEnabled?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -66,6 +68,8 @@ export default function SessionsFilter({
   ];
 
   useEffect(() => {
+    if (!semanticSearchEnabled) return;
+
     let phraseIdx = 0;
     let charIdx = 0;
     let deleting = false;
@@ -97,7 +101,7 @@ export default function SessionsFilter({
 
     timer = setTimeout(tick, 600);
     return () => clearTimeout(timer);
-  }, []);
+  }, [semanticSearchEnabled]);
 
   const push = useCallback(
     (updates: Record<string, string>) => {
@@ -135,11 +139,11 @@ export default function SessionsFilter({
       return;
     }
 
-    if (isNLQuery(val)) {
+    if (semanticSearchEnabled && isNLQuery(val)) {
       setQueryMode("semantic");
       debounceRef.current = setTimeout(() => runSemanticSearch(val), 500);
     } else {
-      setQueryMode("keyword");
+      setQueryMode(semanticSearchEnabled ? "keyword" : null);
       setNlResults(null);
       setNlQuery("");
       push({ q: val });
@@ -182,14 +186,18 @@ export default function SessionsFilter({
             className="filter-search"
             style={{ flex: 1 }}
             type="text"
-            placeholder={inputFocused ? "Search by name, room, or describe in plain English…" : ""}
+            placeholder={inputFocused
+              ? (semanticSearchEnabled
+                ? "Search by name, room, or describe in plain English…"
+                : "Search by name or room…")
+              : ""}
             defaultValue={q}
             onChange={handleChange}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
           />
           {/* Animated placeholder — only shown when idle (not focused, no value) */}
-          {!inputValue && !inputFocused && (
+          {!inputValue && !inputFocused && semanticSearchEnabled && (
             <span style={{
               position: "absolute", left: 10, pointerEvents: "none",
               fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden",
@@ -197,7 +205,7 @@ export default function SessionsFilter({
               <span style={{ opacity: 0.5 }}>e.g. </span>{placeholder}<span style={{ borderRight: "1px solid var(--muted)", marginLeft: 1, animation: "blink 1s step-end infinite" }} />
             </span>
           )}
-          {queryMode && !nlLoading && (
+          {semanticSearchEnabled && queryMode && !nlLoading && (
             <span style={{ position: "absolute", right: 10, fontSize: 10, color: "var(--muted)", background: "var(--bg)", padding: "1px 5px", border: "1px solid var(--border)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
               {queryMode}
             </span>

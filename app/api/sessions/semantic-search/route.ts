@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { db } from "@/lib/db";
+import { getSemanticSearchSettings } from "@/lib/settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 export async function POST(req: NextRequest) {
   const { q } = await req.json();
   if (!q?.trim()) return NextResponse.json({ sessions: [] });
+
+  const { enabled } = await getSemanticSearchSettings();
+  if (!enabled) return NextResponse.json({ sessions: [], disabled: true });
 
   const resp = await openai.embeddings.create({
     model: "text-embedding-3-small",
