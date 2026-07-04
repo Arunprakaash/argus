@@ -26,4 +26,10 @@ export const env = {
   s3AccessKey: () => required("SUPABASE_S3_ACCESS_KEY"),
   s3SecretKey: () => required("SUPABASE_S3_SECRET_KEY"),
   recordingsBucket: () => optional("RECORDINGS_BUCKET", "recordings"),
+
+  // Interview platform video (AWS S3) — presigned playback from sessions.metadata
+  interviewS3Bucket: () => optional("INTERVIEW_S3_BUCKET", ""),
+  interviewS3Region: () => optional("INTERVIEW_S3_REGION", "us-east-1"),
+  awsAccessKeyId: () => optional("AWS_ACCESS_KEY_ID", ""),
+  awsSecretAccessKey: () => optional("AWS_SECRET_ACCESS_KEY", ""),
 };

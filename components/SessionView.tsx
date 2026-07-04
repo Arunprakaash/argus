@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { statusBadgeClass, severityClass, fmtDuration, fmtDate, titleCase } from "@/lib/format";
 import { useSetBreadcrumbTail } from "./breadcrumb-context";
 import NotesPanel from "./NotesPanel";
+import TranscriptReplayPanel from "./TranscriptReplayPanel";
 
 
 function num(n: unknown): string {
@@ -114,7 +115,7 @@ function TranscriptWithTools({ transcript, toolEvents }: { transcript: any[]; to
           return (
             <div className={`turn ${item.role}${item.interrupted ? " interrupted" : ""}`} key={item.id}>
               <div className="avatar">{(item.role === "assistant" ? "A" : "C")}</div>
-              <div>
+              <div className="turn-body">
                 <div className="turn-role">{item.role === "assistant" ? "Agent" : "Candidate"}</div>
                 <div className="txt">{item.text}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -259,6 +260,22 @@ export default function SessionView({
 
   useSetBreadcrumbTail(s.room_name);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Transcript");
+  const [interviewVideoUrl, setInterviewVideoUrl] = useState<string | null>(null);
+  const [videoExpiresInSec, setVideoExpiresInSec] = useState(600);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/sessions/${s.id}/interview-recording`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.url) {
+          setInterviewVideoUrl(data.url);
+          if (data.expiresInSec) setVideoExpiresInSec(data.expiresInSec);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [s.id]);
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -335,7 +352,18 @@ export default function SessionView({
 
         {/* ── Transcript ─────────────────────────────────────── */}
         {tab === "Transcript" && (
-          <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} />
+          interviewVideoUrl
+            ? (
+              <TranscriptReplayPanel
+                sessionId={s.id}
+                videoUrl={interviewVideoUrl}
+                expiresInSec={videoExpiresInSec}
+                transcript={data.transcript}
+                toolEvents={data.toolEvents ?? []}
+                startedAt={s.started_at}
+              />
+            )
+            : <TranscriptWithTools transcript={data.transcript} toolEvents={data.toolEvents ?? []} />
         )}
 
 

@@ -114,6 +114,34 @@
             "description": "Deletes a note from a session. Requires a valid Supabase session cookie (401 without auth)."
           },
           "response": []
+        },
+        {
+          "name": "Get Interview Recording URL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "{{session_cookie}}",
+                "type": "text",
+                "description": "Supabase auth session cookie from a signed-in browser session."
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}/interview-recording",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "{{session_id}}",
+                "interview-recording"
+              ]
+            },
+            "description": "Returns a short-lived presigned URL for the interview video stored in AWS S3. Reads metadata.recording_url (S3 HTTPS URL). Requires INTERVIEW_S3_BUCKET, INTERVIEW_S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY. 404 if no recording in metadata; 401 without auth."
+          },
+          "response": []
         }
       ]
     },

@@ -429,6 +429,77 @@ audio { width: 100%; margin-top: 4px; }
 .note-area:focus { background: var(--panel); }
 .note-footer { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel); }
 
+/* Transcript + video replay split */
+.detail-content:has(.replay-split) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 0;
+}
+.detail-content:has(.replay-split) .detail-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+}
+.detail-content:has(.replay-split) .tabpanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+.replay-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 38%) 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.replay-video-col {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  background: transparent;
+}
+.replay-video-label {
+  padding: 0 0 8px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-2);
+}
+.replay-video { display: block; width: 100%; background: #000; border: 1px solid var(--border); }
+.replay-transcript-col {
+  overflow-y: auto;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+.replay-transcript { max-width: none; margin: 0; }
+.replay-transcript .turn {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 4px;
+  margin: 0;
+}
+.replay-transcript .turn:last-child { border-bottom: 0; }
+.turn.turn-seekable { cursor: pointer; }
+.replay-transcript .turn .turn-body {
+  flex: 1;
+  min-width: 0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: fit-content;
+  max-width: 100%;
+}
+.replay-transcript .turn.turn-seekable:hover .turn-body,
+.replay-transcript .turn.active .turn-body {
+  background: var(--panel);
+}
+.replay-tool.active { background: var(--panel); }
+
 /* ── Premium polish ───────────────────────────────────────── */
 body { letter-spacing: -0.006em; }
 ::selection { background: var(--accent); color: #fff; }
@@ -451,6 +522,7 @@ h1.page { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
 /* transcript — avatar + body */
 .turn { gap: 12px; padding: 14px 0; align-items: flex-start; }
 .turn .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.turn .turn-body { flex: 1; min-width: 0; }
 .turn .turn-role { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
 .turn.user .turn-role { color: var(--muted); }
 

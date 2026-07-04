@@ -78,10 +78,27 @@ observer.set_metadata(
     agent_name=metadata["agent_name"],
     interview_type=metadata["interview_type"],
     fixed_questions=[q["question_text"] for q in metadata.get("fixed_questions", [])],
-    raw=metadata,
+    raw=metadata,  # must include recording_url (S3 HTTPS URL) for video playback in Argus
 )
 observer.attach(session, ctx)   # registers native @session.on / @ctx.room.on listeners
 ```
+
+**Interview video playback:** if job metadata includes `recording_url` (full S3 HTTPS URL, e.g.
+`https://interview-devs.s3.us-east-1.amazonaws.com/...mp4`), Argus presigns it for the
+dashboard player. Set on the backend:
+
+```bash
+INTERVIEW_S3_BUCKET=interview-devs
+INTERVIEW_S3_REGION=us-east-1
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+```
+
+Credentials stay in env only — never in the database.
+
+Encode interview MP4s with `ffmpeg -movflags +faststart` so playback starts quickly
+(moov atom at the front of the file). Argus presigns the object as-is; it cannot relocate
+the moov atom server-side.
 
 The SDK captures the judge's decision and proctoring flags from the native
 `function_tools_executed` events — **no wiring into `_judge_questions_coverage`**.
@@ -113,5 +130,6 @@ their own keys.
 | POST | `/api/livekit/webhook` | LiveKit-signed; verified via `WebhookReceiver` |
 | GET | `/api/sessions` | `?status=`, `?limit=` |
 | GET | `/api/sessions/{id}` | session + transcript + flags + analyses + timeline |
-| GET | `/api/sessions/{id}/recording` | short-lived signed audio URL |
+| GET | `/api/sessions/{id}/recording` | short-lived signed audio URL (Supabase egress) |
+| GET | `/api/sessions/{id}/interview-recording` | presigned interview video URL (AWS S3 from metadata) |
 | GET | `/api/health` | liveness |
