@@ -74,6 +74,7 @@ export async function signInterviewRecording(metadata: unknown): Promise<{ url: 
       Key: parsed.key,
       ResponseContentType: "video/mp4",
       ResponseContentDisposition: "inline",
+      ResponseCacheControl: `public, max-age=${PRESIGN_EXPIRES_SEC}, immutable`,
     }),
     { expiresIn: PRESIGN_EXPIRES_SEC },
   );

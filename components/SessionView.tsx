@@ -5,6 +5,7 @@ import { statusBadgeClass, severityClass, fmtDuration, fmtDate, titleCase } from
 import { useSetBreadcrumbTail } from "./breadcrumb-context";
 import NotesPanel from "./NotesPanel";
 import TranscriptReplayPanel from "./TranscriptReplayPanel";
+import { preconnectVideoOrigin } from "@/lib/video-preconnect";
 
 
 function num(n: unknown): string {
@@ -260,22 +261,13 @@ export default function SessionView({
 
   useSetBreadcrumbTail(s.room_name);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Transcript");
-  const [interviewVideoUrl, setInterviewVideoUrl] = useState<string | null>(null);
-  const [videoExpiresInSec, setVideoExpiresInSec] = useState(600);
+  const interviewVideoUrl = data.interviewVideoUrl ?? null;
+  const videoExpiresInSec = data.interviewVideoExpiresInSec ?? 600;
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/sessions/${s.id}/interview-recording`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.url) {
-          setInterviewVideoUrl(data.url);
-          if (data.expiresInSec) setVideoExpiresInSec(data.expiresInSec);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [s.id]);
+    if (!interviewVideoUrl) return;
+    return preconnectVideoOrigin(interviewVideoUrl);
+  }, [interviewVideoUrl]);
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {

@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { env } from "./env";
 import { llmCostUsd, ttsCostUsd, sttCostUsd } from "./cost";
+import { RecordingNotFoundError, signInterviewRecording } from "./interview-recording";
 
 // Server-side data access for the dashboard (service-role; RLS-bypassing).
 
@@ -211,6 +212,18 @@ export async function getSessionDetail(id: string) {
     recordingUrl = signed?.signedUrl ?? null;
   }
 
+  let interviewVideoUrl: string | null = null;
+  let interviewVideoExpiresInSec = 600;
+  try {
+    const signed = await signInterviewRecording(session.metadata);
+    interviewVideoUrl = signed.url;
+    interviewVideoExpiresInSec = signed.expiresInSec;
+  } catch (err) {
+    if (!(err instanceof RecordingNotFoundError)) {
+      // AWS misconfig or invalid URL — page still loads without video.
+    }
+  }
+
   const byKind: Record<string, any> = {};
   for (const a of analyses.data ?? []) byKind[(a as any).kind] = a;
 
@@ -221,6 +234,8 @@ export async function getSessionDetail(id: string) {
     analyses: byKind,
     recordings: recordings.data ?? [],
     recordingUrl,
+    interviewVideoUrl,
+    interviewVideoExpiresInSec,
     timeline: events.data ?? [],
     toolEvents: toolEvents.data ?? [],
     annotations: annotations.data ?? [],

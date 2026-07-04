@@ -202,8 +202,10 @@ export default function TranscriptReplayPanel({
           ref={videoRef}
           src={videoUrl}
           controls
-          preload="metadata"
+          preload="auto"
           playsInline
+          // @ts-expect-error fetchPriority is valid on video in modern browsers
+          fetchPriority="high"
           className="replay-video"
           onTimeUpdate={onTimeUpdate}
           onLoadedData={onVideoLoaded}
