@@ -9,7 +9,7 @@ const SHORTCUTS = [
   { keys: ["k"], description: "Previous session row" },
   { keys: ["Enter"], description: "Open selected session" },
   { keys: ["Esc"], description: "Back / clear" },
-  { keys: ["1–6"], description: "Switch tab in session detail" },
+  { keys: ["1–5"], description: "Switch tab in session detail" },
 ];
 
 export default function KeyboardShortcuts() {

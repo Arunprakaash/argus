@@ -46,24 +46,31 @@ export default function NotesPanel({
   }
 
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto" }}>
-      {/* Existing notes */}
-      {notes.length === 0
-        ? <div className="empty" style={{ marginBottom: 24 }}>No notes yet. Add the first QA note below.</div>
-        : notes.map((n) => (
-          <div className="note-row" key={n.id}>
-            <div className="note-meta">
-              <span className="note-author">{n.author || "QA"}</span>
-              <span className="muted" style={{ fontSize: 12 }}>{fmtDate(n.created_at)}</span>
-              <button className="note-del" onClick={() => remove(n.id)} title="Delete">×</button>
-            </div>
-            <div className="note-body">{n.note}</div>
-          </div>
-        ))}
+    <div className="notes-sidebar">
+      <div className="notes-sidebar-h">
+        <span className="notes-sidebar-title">
+          Notes
+          {notes.length > 0 && <span className="badge gray">{notes.length}</span>}
+        </span>
+      </div>
 
-      {/* Add note form */}
-      <form onSubmit={submit} style={{ marginTop: notes.length ? 20 : 0 }}>
-        <div style={{ border: "1px solid var(--border-strong)" }}>
+      <div className="notes-sidebar-list">
+        {notes.length === 0
+          ? <div className="empty notes-empty">No notes yet. Add the first QA note below.</div>
+          : notes.map((n) => (
+            <div className="note-row" key={n.id}>
+              <div className="note-meta">
+                <span className="note-author">{n.author || "QA"}</span>
+                <span className="muted" style={{ fontSize: 12 }}>{fmtDate(n.created_at)}</span>
+                <button className="note-del" onClick={() => remove(n.id)} title="Delete">×</button>
+              </div>
+              <div className="note-body">{n.note}</div>
+            </div>
+          ))}
+      </div>
+
+      <form className="notes-sidebar-compose" onSubmit={submit}>
+        <div className="notes-compose-box">
           <textarea
             className="note-area"
             placeholder="Add a QA note — observations, false positive flags, follow-up actions…"

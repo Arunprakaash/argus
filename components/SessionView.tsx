@@ -32,7 +32,7 @@ const USAGE_TITLE: Record<string, string> = {
   interruption_usage: "Interruptions",
 };
 
-const TABS = ["Transcript", "Analysis", "Questions", "Usage", "Notes", "Timeline"] as const;
+const TABS = ["Transcript", "Analysis", "Questions", "Usage", "Timeline"] as const;
 
 const TOOL_LABELS: Record<string, string> = {
   handle_out_of_context:   "Out of context",
@@ -281,7 +281,9 @@ export default function SessionView({
 
   return (
     <div className="detail-shell">
-      <div className="detail-top"><div className="detail-inner">
+      <div className="detail-frame">
+        <div className="detail-primary">
+          <div className="detail-top"><div className="detail-inner">
       {/* Header */}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
@@ -327,8 +329,9 @@ export default function SessionView({
       </div>
       </div></div>
 
-      <div className="detail-body"><div className="detail-inner">
-      <div className="tabpanel">
+          <div className="detail-content">
+            <div className="detail-inner">
+              <div className="tabpanel">
 
         {/* ── Transcript ─────────────────────────────────────── */}
         {tab === "Transcript" && (
@@ -511,11 +514,6 @@ export default function SessionView({
           </div>
         )}
 
-        {/* ── Notes ─────────────────────────────────────────── */}
-        {tab === "Notes" && (
-          <NotesPanel sessionId={s.id} initial={data.annotations ?? []} authorLabel={authorLabel} />
-        )}
-
         {/* ── Timeline ───────────────────────────────────────── */}
         {tab === "Timeline" && (
           <div className="table-wrap">
@@ -534,8 +532,18 @@ export default function SessionView({
           </div>
         )}
 
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside className="detail-notes">
+          <NotesPanel
+            sessionId={s.id}
+            initial={data.annotations ?? []}
+            authorLabel={authorLabel}
+          />
+        </aside>
       </div>
-      </div></div>
     </div>
   );
 }

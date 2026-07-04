@@ -75,11 +75,20 @@ a { color: inherit; text-decoration: none; }
 .content-wrap { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; }
 .content { padding: 22px; max-width: 1200px; width: 100%; margin: 0 auto; }
 
-/* Detail page: fixed header/verdict/tabs, only the body below the tabs scrolls. */
-.detail-shell { display: flex; flex-direction: column; height: 100%; }
+/* Detail page: header + content left, notes sidebar full height right. */
+.content-wrap:has(.detail-shell) { overflow: hidden; display: flex; flex-direction: column; }
+.detail-shell { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; height: 100%; position: relative; }
+.detail-frame { flex: 1; min-height: 0; display: flex; min-width: 0; }
+.detail-primary { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .detail-top { flex-shrink: 0; padding: 22px 22px 0; }
-.detail-body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px; }
+.detail-content { flex: 1; min-height: 0; overflow-y: auto; padding: 22px; }
 .detail-inner { max-width: 1200px; margin: 0 auto; width: 100%; }
+.detail-notes {
+  width: 300px; flex-shrink: 0; align-self: stretch; min-height: 0;
+  border-left: 1px solid var(--border); background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.detail-body { flex: 1; min-height: 0; overflow-y: auto; padding: 22px; }
 
 /* ── Tables ───────────────────────────────────────────────── */
 .table-wrap { border: 1px solid var(--border); overflow: hidden; background: var(--bg); }
@@ -392,7 +401,19 @@ audio { width: 100%; margin-top: 4px; }
 .pg-btns { display: flex; align-items: center; gap: 8px; }
 .pg-curr { color: var(--muted); min-width: 48px; text-align: center; }
 
-/* ── Session annotations / notes ─────────────────────────── */
+/* ── Session annotations / notes sidebar ───────────────────── */
+.notes-sidebar { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.notes-sidebar-h {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 14px 12px; border-bottom: 1px solid var(--border);
+}
+.notes-sidebar-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
+.notes-sidebar-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 14px; }
+.notes-empty { padding: 24px 0; text-align: left; font-size: 13px; }
+.notes-sidebar-compose {
+  flex-shrink: 0; padding: 12px 14px 14px; border-top: 1px solid var(--border); background: var(--panel);
+}
+.notes-compose-box { border: 1px solid var(--border-strong); background: var(--bg); }
 .note-row { padding: 14px 0; border-bottom: 1px solid var(--border); }
 .note-row:last-of-type { border-bottom: 0; }
 .note-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
