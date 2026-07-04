@@ -272,7 +272,7 @@ function ReplayControls({
           </svg>
         </button>
         {menuOpen && (
-          <div className="replay-menu-panel" role="menu">
+          <div className={`replay-menu-panel${isFullscreen ? " replay-menu-panel-up" : ""}`} role="menu">
             {pipSupported && (
               <button type="button" className="replay-menu-item" role="menuitem" onClick={() => { void togglePiP(); }}>
                 Picture-in-picture
