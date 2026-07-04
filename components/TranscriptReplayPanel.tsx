@@ -165,9 +165,14 @@ function ReplayControls({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pipSupported, setPipSupported] = useState(false);
+  const [fsSupported, setFsSupported] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const pipSupported = typeof document !== "undefined" && document.pictureInPictureEnabled;
-  const fsSupported = typeof document !== "undefined" && document.fullscreenEnabled;
+
+  useEffect(() => {
+    setPipSupported(document.pictureInPictureEnabled);
+    setFsSupported(document.fullscreenEnabled);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
