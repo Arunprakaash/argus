@@ -215,7 +215,11 @@ export default function IntegrationsClient({
                   value={livekit.dashboard_url}
                   onChange={(e) => setLivekit({ dashboard_url: e.target.value })}
                 />
-                <div className="field-hint">Included in alert links so reviewers can jump to the LiveKit project.</div>
+                  <div className="field-hint">
+                  Paste your project URL, e.g.{" "}
+                  <span className="mono">https://cloud.livekit.io/projects/p_5bz8iswts61</span>.
+                  Alert links use the LiveKit session id (<span className="mono">RM_…</span>), not the room name.
+                </div>
               </div>
               <SaveRow
                 saving={livekitSaving}

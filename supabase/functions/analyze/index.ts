@@ -249,15 +249,15 @@ async function getSetting(key: string) {
   return data?.value as Record<string, unknown> | null;
 }
 
-function livekitLink(base: string, roomName: string) {
-  const trimmed = base.replace(/\/$/, "");
-  return `${trimmed}?room=${encodeURIComponent(roomName)}`;
+function livekitLink(base: string, livekitSessionId: string) {
+  const trimmed = base.replace(/\/$/, "").replace(/\/sessions(?:\/.*)?$/, "");
+  return `${trimmed}/sessions/${livekitSessionId}`;
 }
 
 async function buildAlertContext(sessionId: string) {
   const appBase = Deno.env.get("ARGUS_APP_URL")?.replace(/\/$/, "") ?? "";
   const [{ data: session }, { data: analyses }, { data: flags }, livekitCfg, slackCfg] = await Promise.all([
-    supabase.from("sessions").select("candidate_name, room_name, status, completion_reason, interview_type").eq("id", sessionId).single(),
+    supabase.from("sessions").select("candidate_name, room_name, livekit_session_id, status, completion_reason, interview_type").eq("id", sessionId).single(),
     supabase.from("analyses").select("kind, verdict").eq("session_id", sessionId),
     supabase.from("flags").select("type, ts, data").eq("session_id", sessionId).order("ts"),
     getSetting("livekit_integration"),
@@ -276,7 +276,8 @@ async function buildAlertContext(sessionId: string) {
 
   const dashboardUrl = appBase ? `${appBase}/dashboard/sessions/${sessionId}` : null;
   const livekitBase = (livekitCfg as { dashboard_url?: string } | null)?.dashboard_url ?? "";
-  const livekitUrl = livekitBase && session?.room_name ? livekitLink(livekitBase, session.room_name) : null;
+  const livekitSid = (session as { livekit_session_id?: string } | null)?.livekit_session_id;
+  const livekitUrl = livekitBase && livekitSid ? livekitLink(livekitBase, livekitSid) : null;
 
   return {
     session,

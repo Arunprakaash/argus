@@ -27,8 +27,13 @@ export async function POST(req: Request) {
     switch (event.event) {
       case "room_started": {
         if (!roomName) break;
+        const livekitSessionId = event.room?.sid ?? null;
         await supabase.from("sessions").upsert(
-          { room_name: roomName, started_at: new Date().toISOString() },
+          {
+            room_name: roomName,
+            started_at: new Date().toISOString(),
+            ...(livekitSessionId ? { livekit_session_id: livekitSessionId } : {}),
+          },
           { onConflict: "room_name" },
         );
         break;

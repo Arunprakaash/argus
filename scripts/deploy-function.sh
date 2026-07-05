@@ -18,6 +18,9 @@ fi
 OPENAI_API_KEY=$(grep -E '^OPENAI_API_KEY=' .env.local | cut -d= -f2-)
 ANALYSIS_MODEL=$(grep -E '^ANALYSIS_MODEL=' .env.local | cut -d= -f2-)
 ANALYSIS_MODEL_HARD=$(grep -E '^ANALYSIS_MODEL_HARD=' .env.local | cut -d= -f2-)
+RESEND_API_KEY=$(grep -E '^RESEND_API_KEY=' .env.local | cut -d= -f2-)
+RESEND_FROM=$(grep -E '^RESEND_FROM=' .env.local | cut -d= -f2-)
+ARGUS_APP_URL=$(grep -E '^ARGUS_APP_URL=' .env.local | cut -d= -f2- | sed 's#/$##')
 # DB password is parsed from DATABASE_URL in .env.local (never hardcode secrets).
 DB_PASSWORD=$(grep -E '^DATABASE_URL=' .env.local | sed -E 's#.*//[^:]+:([^@]+)@.*#\1#')
 
@@ -28,7 +31,10 @@ echo "==> Setting function secrets (SUPABASE_URL/SERVICE_ROLE are auto-provided)
 npx supabase secrets set \
   OPENAI_API_KEY="$OPENAI_API_KEY" \
   ANALYSIS_MODEL="$ANALYSIS_MODEL" \
-  ANALYSIS_MODEL_HARD="$ANALYSIS_MODEL_HARD"
+  ANALYSIS_MODEL_HARD="$ANALYSIS_MODEL_HARD" \
+  RESEND_API_KEY="$RESEND_API_KEY" \
+  RESEND_FROM="$RESEND_FROM" \
+  ARGUS_APP_URL="$ARGUS_APP_URL"
 
 echo "==> Deploying analyze function"
 # --use-api avoids needing Docker for bundling.
