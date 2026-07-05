@@ -61,13 +61,14 @@ export default function SessionsTable({
               <th>Status</th>
               <th>Completion</th>
               <th>Duration</th>
+              <th className="col-notes">Notes</th>
               <th>Started</th>
               <th>Room</th>
             </tr>
           </thead>
           <tbody>
             {sessions.length === 0 && (
-              <tr><td colSpan={6}><div className="empty">No sessions yet. Run an interview to see it here.</div></td></tr>
+              <tr><td colSpan={7}><div className="empty">No sessions yet. Run an interview to see it here.</div></td></tr>
             )}
             {sessions.map((s, i) => (
               <tr
@@ -85,6 +86,18 @@ export default function SessionsTable({
                 </td>
                 <td className="muted">{titleCase(s.completion_reason)}</td>
                 <td>{fmtDuration(s.duration_sec)}</td>
+                <td className="col-notes muted">
+                  <span className="col-notes-inner">
+                    {s.note_count > 0 ? (
+                      <span
+                        className="badge gray"
+                        title={`${s.note_count} QA note${s.note_count !== 1 ? "s" : ""}`}
+                      >
+                        {s.note_count}
+                      </span>
+                    ) : "—"}
+                  </span>
+                </td>
                 <td className="muted">{fmtDate(s.started_at || s.created_at)}</td>
                 <td className="mono">{s.room_name}</td>
               </tr>

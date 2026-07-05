@@ -17,6 +17,7 @@ export type SessionRow = {
   ended_at: string | null;
   duration_sec: number | null;
   created_at: string;
+  note_count: number;
 };
 
 export type ModelUsageStat = {
@@ -47,7 +48,7 @@ export type DashboardStats = {
   sttStats: SttUsageStat;
 };
 
-export const PAGE_SIZE = 10;
+export const PAGE_SIZE = 9;
 
 export type SessionFilters = {
   page?: number;
@@ -66,7 +67,7 @@ export async function listSessions(
   let query = db()
     .from("sessions")
     .select(
-      "id, room_name, status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at",
+      "id, room_name, status, completion_reason, candidate_name, agent_name, interview_type, started_at, ended_at, duration_sec, created_at, annotations(count)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -91,7 +92,14 @@ export async function listSessions(
   }
 
   const { data, count } = await query;
-  return { sessions: (data ?? []) as SessionRow[], total: count ?? 0 };
+  const sessions: SessionRow[] = (data ?? []).map((row) => {
+    const { annotations, ...session } = row as typeof row & { annotations?: { count: number }[] };
+    return {
+      ...session,
+      note_count: annotations?.[0]?.count ?? 0,
+    };
+  });
+  return { sessions, total: count ?? 0 };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {

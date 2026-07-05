@@ -178,64 +178,68 @@ export default function SessionsFilter({
 
   return (
     <div>
-      <div className="filter-bar">
-        {/* Unified search — auto-classifies: short/simple = keyword ilike, sentence/NL = semantic */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", flex: 1 }}>
-          <input
-            ref={inputRef}
-            className="filter-search"
-            style={{ flex: 1 }}
-            type="text"
-            placeholder={semanticSearchEnabled
-              ? (inputFocused ? "Search by name, room, or describe in plain English…" : "")
-              : "Search by name or room…"}
-            defaultValue={q}
-            onChange={handleChange}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-          />
-          {/* Animated placeholder — only shown when idle (not focused, no value) */}
-          {!inputValue && !inputFocused && semanticSearchEnabled && (
-            <span style={{
-              position: "absolute", left: 10, pointerEvents: "none",
-              fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden",
-            }}>
-              <span style={{ opacity: 0.5 }}>e.g. </span>{placeholder}<span style={{ borderRight: "1px solid var(--muted)", marginLeft: 1, animation: "blink 1s step-end infinite" }} />
-            </span>
-          )}
-          {semanticSearchEnabled && queryMode && !nlLoading && (
-            <span style={{ position: "absolute", right: 10, fontSize: 10, color: "var(--muted)", background: "var(--bg)", padding: "1px 5px", border: "1px solid var(--border)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-              {queryMode}
-            </span>
-          )}
-          {nlLoading && (
-            <span style={{ position: "absolute", right: 10, fontSize: 11, color: "var(--muted)" }}>searching…</span>
-          )}
+      <div className="filter-stack">
+        {/* Row 1: search */}
+        <div className="filter-bar filter-search-bar">
+          <div className="filter-search-wrap">
+            <input
+              ref={inputRef}
+              className="filter-search"
+              type="text"
+              placeholder={semanticSearchEnabled
+                ? (inputFocused ? "Search by name, room, or describe in plain English…" : "")
+                : "Search by name or room…"}
+              defaultValue={q}
+              onChange={handleChange}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+            />
+            {!inputValue && !inputFocused && semanticSearchEnabled && (
+              <span className="filter-search-ghost">
+                <span style={{ opacity: 0.5 }}>e.g. </span>{placeholder}<span className="filter-search-caret" />
+              </span>
+            )}
+            {semanticSearchEnabled && queryMode && !nlLoading && (
+              <span className="filter-search-mode">{queryMode}</span>
+            )}
+            {nlLoading && (
+              <span className="filter-search-mode">searching…</span>
+            )}
+          </div>
         </div>
 
-        {/* Status pills */}
-        <div className="filter-pills">
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              className={`pill${status === s.value ? " active" : ""}`}
-              onClick={() => push({ status: s.value })}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {/* Row 2: status + period (separate groups) */}
+        <div className="filter-controls-row">
+          <div className="filter-group">
+            <div className="filter-pills">
+              {STATUSES.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  className={`pill${status === s.value ? " active" : ""}`}
+                  onClick={() => push({ status: s.value })}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* Period select */}
-        <select
-          className="filter-select"
-          value={period}
-          onChange={(e) => push({ period: e.target.value })}
-        >
-          {PERIODS.map((p) => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
-        </select>
+          <div className="filter-group">
+            <div className="filter-pills">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  className={`pill${period === p.value ? " active" : ""}`}
+                  onClick={() => push({ period: p.value })}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Semantic results — replaces the normal table when active */}
