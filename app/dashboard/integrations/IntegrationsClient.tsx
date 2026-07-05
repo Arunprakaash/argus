@@ -33,6 +33,7 @@ export default function IntegrationsClient({
   livekit: initialLivekit,
   semanticSearch: initialSemanticSearch,
   apiKeys: initialApiKeys,
+  apiKeysSetupError = null,
 }: {
   slack: SlackSettings;
   email: EmailSettings;
@@ -40,6 +41,7 @@ export default function IntegrationsClient({
   livekit: LiveKitSettings;
   semanticSearch: SemanticSearchSettings;
   apiKeys: ApiKeyRow[];
+  apiKeysSetupError?: string | null;
 }) {
   const [slack, setSlack] = useState(initialSlack);
   const [email, setEmail] = useState(initialEmail);
@@ -130,11 +132,14 @@ export default function IntegrationsClient({
       body: JSON.stringify({ name: newKeyName.trim() }),
     });
     setCreatingKey(false);
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setApiKeyStatus({ type: "err", msg: "Failed to create API key." });
+      setApiKeyStatus({
+        type: "err",
+        msg: (data as { error?: string }).error ?? "Failed to create API key.",
+      });
       return;
     }
-    const data = await res.json();
     setCreatedKey(data.key);
     setApiKeys((keys) => [data.api_key, ...keys]);
     setNewKeyName("");
@@ -148,11 +153,15 @@ export default function IntegrationsClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       setApiKeys((keys) => keys.filter((k) => k.id !== id));
       setApiKeyStatus({ type: "ok", msg: "API key revoked." });
     } else {
-      setApiKeyStatus({ type: "err", msg: "Failed to revoke key." });
+      setApiKeyStatus({
+        type: "err",
+        msg: (data as { error?: string }).error ?? "Failed to revoke key.",
+      });
     }
   }
 
@@ -333,6 +342,11 @@ export default function IntegrationsClient({
               badge={{ label: apiKeys.length ? `${apiKeys.length} active` : "none", tone: apiKeys.length ? "green" : "gray" }}
             />
             <div className="card-b" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {apiKeysSetupError && (
+                <div style={{ fontSize: 13, color: "crimson", padding: "10px 12px", border: "1px solid crimson", background: "rgba(220,20,60,0.06)" }}>
+                  {apiKeysSetupError}
+                </div>
+              )}
               <div className="field-hint">
                 External services can call <span className="mono">GET /api/sessions</span> and{" "}
                 <span className="mono">GET /api/sessions/:id</span> with{" "}
