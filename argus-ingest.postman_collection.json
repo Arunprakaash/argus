@@ -146,6 +146,94 @@
       ]
     },
     {
+      "name": "Dashboard: Integrations",
+      "item": [
+        {
+          "name": "List Sessions (API key)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{read_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions"],
+              "query": [{ "key": "limit", "value": "20" }]
+            },
+            "description": "Read-only session list. Requires a valid argus_ API key created on the Integrations page, or a signed-in dashboard session."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session Detail (API key)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{read_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{session_id}}"]
+            },
+            "description": "Full session payload (transcript, flags, analyses, timeline). Requires read-only API key or dashboard session."
+          },
+          "response": []
+        },
+        {
+          "name": "Upsert Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Cookie", "value": "{{session_cookie}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"email_integration\",\n  \"value\": { \"enabled\": true, \"to\": \"qa@company.com\", \"notify_on\": { \"issues\": true, \"judge_disagree\": true, \"abandoned\": true, \"proctoring\": true } }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "settings"]
+            },
+            "description": "Upsert a settings key. Requires dashboard session cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Cookie", "value": "{{session_cookie}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"BI pipeline\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/api-keys",
+              "host": ["{{base_url}}"],
+              "path": ["api", "api-keys"]
+            },
+            "description": "Creates a read-only API key. Returns the full key once in { key, api_key }."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Dashboard: Semantic Search",
       "item": [
         {
@@ -200,6 +288,10 @@
     },
     {
       "key": "session_cookie",
+      "value": ""
+    },
+    {
+      "key": "read_api_key",
       "value": ""
     }
   ]

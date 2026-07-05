@@ -1,27 +1,35 @@
-import { createClient } from "@supabase/supabase-js";
+import {
+  getEmailSettings,
+  getGenericWebhookSettings,
+  getLiveKitSettings,
+  getSemanticSearchSettings,
+  getSlackSettings,
+} from "@/lib/settings";
+import { db } from "@/lib/db";
 import IntegrationsClient from "./IntegrationsClient";
-import { getSemanticSearchSettings } from "@/lib/settings";
-
-async function getSlackSettings() {
-  const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data } = await sb.from("settings").select("value").eq("key", "slack_integration").single();
-  const defaults = {
-    webhook_url: "",
-    enabled: false,
-    notify_on: { issues: true, judge_disagree: true, abandoned: true, proctoring: true },
-  };
-  const value = data?.value as typeof defaults | undefined;
-  return {
-    ...defaults,
-    ...value,
-    notify_on: { ...defaults.notify_on, ...(value?.notify_on ?? {}) },
-  };
-}
 
 export default async function IntegrationsPage() {
-  const [slack, semanticSearch] = await Promise.all([
+  const [slack, email, webhook, livekit, semanticSearch, apiKeys] = await Promise.all([
     getSlackSettings(),
+    getEmailSettings(),
+    getGenericWebhookSettings(),
+    getLiveKitSettings(),
     getSemanticSearchSettings(),
+    db()
+      .from("api_keys")
+      .select("id, name, key_prefix, created_at, last_used_at")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => data ?? []),
   ]);
-  return <IntegrationsClient slack={slack} semanticSearch={semanticSearch} />;
+
+  return (
+    <IntegrationsClient
+      slack={slack}
+      email={email}
+      webhook={webhook}
+      livekit={livekit}
+      semanticSearch={semanticSearch}
+      apiKeys={apiKeys}
+    />
+  );
 }

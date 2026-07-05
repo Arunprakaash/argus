@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
+import { requireSessionOrApiKey } from "@/lib/api-key";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // List sessions, newest first. Supports ?status= and ?limit=.
+// Requires dashboard session or read-only API key (Authorization: Bearer argus_…).
 export async function GET(req: Request) {
+  if (!(await requireSessionOrApiKey(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);

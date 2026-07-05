@@ -126,6 +126,21 @@ thead th.col-notes { text-align: center; }
 .grid { display: grid; gap: 16px; }
 .grid.cols-2 { grid-template-columns: 1fr 1fr; }
 .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.integrations-masonry {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.integrations-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (max-width: 860px) {
+  .integrations-masonry { flex-direction: column; }
+}
 @media (max-width: 860px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }
 .card { border: 1px solid var(--border); background: var(--bg); }
 .card .card-h {

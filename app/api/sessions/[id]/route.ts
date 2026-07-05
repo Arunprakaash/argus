@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
+import { requireSessionOrApiKey } from "@/lib/api-key";
 import { db } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Full session detail: metadata, transcript, flags, analyses, recording ref,
-// and the raw event timeline. The surface the (future) frontend consumes.
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+// and the raw event timeline. Requires dashboard session or read-only API key.
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  if (!(await requireSessionOrApiKey(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const { id } = await ctx.params;
   const supabase = db();
 

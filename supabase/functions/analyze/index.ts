@@ -4,7 +4,8 @@
 //
 // Secrets (set via `supabase secrets set`):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY,
-//   ANALYSIS_MODEL (default claude-sonnet-4-6), ANALYSIS_MODEL_HARD (claude-opus-4-8)
+//   ANALYSIS_MODEL (default claude-sonnet-4-6), ANALYSIS_MODEL_HARD (claude-opus-4-8),
+//   RESEND_API_KEY, RESEND_FROM (optional), ARGUS_APP_URL (dashboard links in alerts)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import OpenAI from "npm:openai@4";
@@ -230,33 +231,37 @@ async function processJob(sessionId: string) {
     console.error("embedding failed:", err);
   }
 
-  // Slack notification — read settings, fire if conditions met
+  // Integration notifications — read settings, fire if conditions met
   try {
-    await maybeNotifySlack(sessionId, {
-      coverage: writes[0] ? undefined : undefined, // resolved below via re-fetch
-    });
+    await dispatchIntegrations(sessionId);
   } catch (_) { /* non-fatal */ }
 }
 
-async function maybeNotifySlack(sessionId: string, _: unknown) {
-  const { data: cfg } = await supabase.from("settings").select("value").eq("key", "slack_integration").single();
-  const settings = cfg?.value as {
-    webhook_url: string;
-    enabled: boolean;
-    notify_on: {
-      issues: boolean;
-      judge_disagree: boolean;
-      abandoned: boolean;
-      proctoring?: boolean;
-    };
-  } | null;
-  if (!settings?.enabled || !settings?.webhook_url) return;
+type NotifyOn = {
+  issues: boolean;
+  judge_disagree: boolean;
+  abandoned: boolean;
+  proctoring?: boolean;
+};
 
-  // Fetch fresh results after all writes
-  const [{ data: session }, { data: analyses }, { data: flags }] = await Promise.all([
+async function getSetting(key: string) {
+  const { data } = await supabase.from("settings").select("value").eq("key", key).single();
+  return data?.value as Record<string, unknown> | null;
+}
+
+function livekitLink(base: string, roomName: string) {
+  const trimmed = base.replace(/\/$/, "");
+  return `${trimmed}?room=${encodeURIComponent(roomName)}`;
+}
+
+async function buildAlertContext(sessionId: string) {
+  const appBase = Deno.env.get("ARGUS_APP_URL")?.replace(/\/$/, "") ?? "";
+  const [{ data: session }, { data: analyses }, { data: flags }, livekitCfg, slackCfg] = await Promise.all([
     supabase.from("sessions").select("candidate_name, room_name, status, completion_reason, interview_type").eq("id", sessionId).single(),
     supabase.from("analyses").select("kind, verdict").eq("session_id", sessionId),
     supabase.from("flags").select("type, ts, data").eq("session_id", sessionId).order("ts"),
+    getSetting("livekit_integration"),
+    getSetting("slack_integration"),
   ]);
 
   const byKind: Record<string, any> = {};
@@ -269,50 +274,121 @@ async function maybeNotifySlack(sessionId: string, _: unknown) {
     typeof flag.type === "string" && flag.type.startsWith("vision_"),
   );
 
-  const shouldNotify = (
-    (settings.notify_on.issues && (issues?.findings?.length ?? 0) > 0) ||
-    (settings.notify_on.judge_disagree && coverage?.agreesWithAgent === false) ||
-    (settings.notify_on.abandoned && completion?.cleanlyCompleted === false) ||
-    (settings.notify_on.proctoring !== false && proctoringFlags.length > 0)
-  );
-  if (!shouldNotify) return;
+  const dashboardUrl = appBase ? `${appBase}/dashboard/sessions/${sessionId}` : null;
+  const livekitBase = (livekitCfg as { dashboard_url?: string } | null)?.dashboard_url ?? "";
+  const livekitUrl = livekitBase && session?.room_name ? livekitLink(livekitBase, session.room_name) : null;
 
-  const lines: string[] = [];
-  lines.push(`🚨 *Argus alert — ${session?.candidate_name ?? "Unknown"}*`);
-  lines.push(`Room: \`${session?.room_name}\` | Status: ${session?.status}`);
-  lines.push("");
+  return {
+    session,
+    coverage,
+    issues,
+    completion,
+    proctoringFlags,
+    dashboardUrl,
+    livekitUrl,
+    shouldNotifyFor(notifyOn: NotifyOn) {
+      return (
+        (notifyOn.issues && (issues?.findings?.length ?? 0) > 0) ||
+        (notifyOn.judge_disagree && coverage?.agreesWithAgent === false) ||
+        (notifyOn.abandoned && completion?.cleanlyCompleted === false) ||
+        (notifyOn.proctoring !== false && proctoringFlags.length > 0)
+      );
+    },
+    slackLines() {
+      const lines: string[] = [];
+      lines.push(`🚨 *Argus alert — ${session?.candidate_name ?? "Unknown"}*`);
+      lines.push(`Room: \`${session?.room_name}\` | Status: ${session?.status}`);
+      if (dashboardUrl) lines.push(`Session: ${dashboardUrl}`);
+      if (livekitUrl) lines.push(`LiveKit: ${livekitUrl}`);
+      lines.push("");
 
-  if (settings.notify_on.issues && issues?.findings?.length > 0) {
-    lines.push(`*Issues detected (${issues.findings.length}):*`);
-    for (const f of issues.findings.slice(0, 5)) {
-      lines.push(`• *${f.severity}* — ${f.category}: ${f.evidence}`);
-    }
-    lines.push("");
-  }
-  if (settings.notify_on.judge_disagree && coverage?.agreesWithAgent === false) {
-    const missingCount = coverage?.missing?.length ?? 0;
-    lines.push(`*Coverage judge disagreed* — ${missingCount} question(s) never asked.`);
-    lines.push("");
-  }
-  if (settings.notify_on.abandoned && completion?.cleanlyCompleted === false) {
-    lines.push(`*Interview not cleanly completed* — reason: ${completion?.reason ?? "unknown"}`);
-    lines.push("");
-  }
-  if (settings.notify_on.proctoring !== false && proctoringFlags.length > 0) {
-    lines.push(`*Vision proctoring flags (${proctoringFlags.length}):*`);
-    for (const f of proctoringFlags.slice(0, 5)) {
-      const elapsed = f.data?.elapsed_interview_seconds;
-      const suffix = elapsed === undefined ? "" : ` at ${elapsed}s`;
-      lines.push(`• ${f.type}${suffix}`);
-    }
-    lines.push("");
-  }
+      const notifyOn = (slackCfg as { notify_on?: NotifyOn } | null)?.notify_on ?? {};
+      if (notifyOn.issues && issues?.findings?.length > 0) {
+        lines.push(`*Issues detected (${issues.findings.length}):*`);
+        for (const f of issues.findings.slice(0, 5)) {
+          lines.push(`• *${f.severity}* — ${f.category}: ${f.evidence}`);
+        }
+        lines.push("");
+      }
+      if (notifyOn.judge_disagree && coverage?.agreesWithAgent === false) {
+        const missingCount = coverage?.missing?.length ?? 0;
+        lines.push(`*Coverage judge disagreed* — ${missingCount} question(s) never asked.`);
+        lines.push("");
+      }
+      if (notifyOn.abandoned && completion?.cleanlyCompleted === false) {
+        lines.push(`*Interview not cleanly completed* — reason: ${completion?.reason ?? "unknown"}`);
+        lines.push("");
+      }
+      if (notifyOn.proctoring !== false && proctoringFlags.length > 0) {
+        lines.push(`*Vision proctoring flags (${proctoringFlags.length}):*`);
+        for (const f of proctoringFlags.slice(0, 5)) {
+          const elapsed = f.data?.elapsed_interview_seconds;
+          const suffix = elapsed === undefined ? "" : ` at ${elapsed}s`;
+          lines.push(`• ${f.type}${suffix}`);
+        }
+        lines.push("");
+      }
+      return lines.join("\n");
+    },
+    plainLines() {
+      return this.slackLines().replace(/\*/g, "").replace(/`/g, "");
+    },
+    webhookPayload() {
+      return {
+        event: "argus.session.alert",
+        session_id: sessionId,
+        candidate_name: session?.candidate_name ?? "Unknown",
+        room_name: session?.room_name,
+        status: session?.status,
+        dashboard_url: dashboardUrl,
+        livekit_url: livekitUrl,
+        summary: this.plainLines(),
+      };
+    },
+  };
+}
 
-  await fetch(settings.webhook_url, {
+async function sendResendEmail(to: string, subject: string, text: string) {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey) return;
+  const from = Deno.env.get("RESEND_FROM") ?? "Argus <onboarding@resend.dev>";
+  await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: lines.join("\n") }),
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: [to], subject, text }),
   });
+}
+
+async function dispatchIntegrations(sessionId: string) {
+  const ctx = await buildAlertContext(sessionId);
+  const [slackCfg, emailCfg, webhookCfg] = await Promise.all([
+    getSetting("slack_integration"),
+    getSetting("email_integration"),
+    getSetting("generic_webhook_integration"),
+  ]);
+
+  const slack = slackCfg as { webhook_url?: string; enabled?: boolean; notify_on?: NotifyOn } | null;
+  if (slack?.enabled && slack.webhook_url && ctx.shouldNotifyFor(slack.notify_on ?? {})) {
+    await fetch(slack.webhook_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: ctx.slackLines() }),
+    });
+  }
+
+  const email = emailCfg as { enabled?: boolean; to?: string; notify_on?: NotifyOn } | null;
+  if (email?.enabled && email.to && ctx.shouldNotifyFor(email.notify_on ?? {})) {
+    await sendResendEmail(email.to, `Argus alert — ${ctx.session?.candidate_name ?? "Unknown"}`, ctx.plainLines());
+  }
+
+  const webhook = webhookCfg as { enabled?: boolean; url?: string; notify_on?: NotifyOn } | null;
+  if (webhook?.enabled && webhook.url && ctx.shouldNotifyFor(webhook.notify_on ?? {})) {
+    await fetch(webhook.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ctx.webhookPayload()),
+    });
+  }
 }
 
 function upsertAnalysis(sessionId: string, kind: string, verdict: unknown, model: string) {

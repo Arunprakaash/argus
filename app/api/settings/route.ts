@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireDashboardUser, unauthorizedResponse } from "@/lib/auth-dashboard";
 import { createClient } from "@supabase/supabase-js";
 
 function sb() {
@@ -6,14 +7,20 @@ function sb() {
 }
 
 export async function GET() {
+  const user = await requireDashboardUser();
+  if (!user) return unauthorizedResponse();
+
   const { data, error } = await sb().from("settings").select("key, value");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const map: Record<string, any> = {};
+  const map: Record<string, unknown> = {};
   for (const row of data ?? []) map[row.key] = row.value;
   return NextResponse.json(map);
 }
 
 export async function POST(req: NextRequest) {
+  const user = await requireDashboardUser();
+  if (!user) return unauthorizedResponse();
+
   const body = await req.json();
   const { key, value } = body;
   if (!key || value === undefined) return NextResponse.json({ error: "key and value required" }, { status: 400 });
