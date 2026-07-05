@@ -145,12 +145,18 @@ class Observer:
         """Register native session + room listeners and start the flush task."""
         self._ensure_task()
 
+        room = getattr(ctx, "room", None)
+        if room is not None:
+            sid = getattr(room, "sid", None)
+            if sid:
+                self._meta = {**(self._meta or {}), "livekitSessionId": str(sid)}
+                self._meta_pending = True
+
         for ev in SESSION_EVENTS:
             if ev in _SKIP_SEND:
                 continue
             session.on(ev, self._session_handler(ev))
 
-        room = getattr(ctx, "room", None)
         if room is not None:
             room.on("participant_connected", self._room_participant("participant_connected"))
             room.on("participant_disconnected", self._room_participant("participant_disconnected"))

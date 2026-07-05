@@ -57,6 +57,7 @@ async function ensureSession(
     if (meta.agentName) patch.agent_name = meta.agentName;
     if (meta.interviewType) patch.interview_type = meta.interviewType;
     if (meta.fixedQuestions) patch.fixed_questions = meta.fixedQuestions;
+    if (meta.livekitSessionId) patch.livekit_session_id = meta.livekitSessionId;
     if (meta.raw) patch.metadata = meta.raw;
   }
 

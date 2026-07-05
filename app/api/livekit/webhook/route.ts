@@ -41,10 +41,13 @@ export async function POST(req: Request) {
 
       case "room_finished": {
         if (!roomName) break;
+        const livekitSessionId = event.room?.sid ?? null;
+        const endedPatch: Record<string, unknown> = { ended_at: new Date().toISOString() };
+        if (livekitSessionId) endedPatch.livekit_session_id = livekitSessionId;
         // Mark abandoned only if the agent didn't already report a clean close.
         await supabase
           .from("sessions")
-          .update({ ended_at: new Date().toISOString() })
+          .update(endedPatch)
           .eq("room_name", roomName)
           .is("ended_at", null);
         break;

@@ -78,6 +78,7 @@ export const eventEnvelope = z.object({
       agentName: z.string().optional(),
       interviewType: z.string().optional(),
       fixedQuestions: z.array(z.string()).optional(),
+      livekitSessionId: z.string().optional(),
       raw: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
