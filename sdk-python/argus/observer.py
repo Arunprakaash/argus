@@ -29,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import inspect
 from typing import Any, Optional
 
 logger = logging.getLogger("argus")
@@ -141,16 +142,23 @@ class Observer:
         }
         self._meta_pending = bool(self._meta)
 
+    async def capture_livekit_session(self, room: Any) -> None:
+        """Call after ``await ctx.connect()`` — ``room.sid`` is async in LiveKit >=1.1."""
+        try:
+            sid_value = room.sid
+            if inspect.isawaitable(sid_value):
+                sid_value = await asyncio.wait_for(sid_value, timeout=5.0)
+            if sid_value:
+                self._meta = {**(self._meta or {}), "livekitSessionId": str(sid_value)}
+                self._meta_pending = True
+        except Exception:
+            logger.debug("argus: could not read room.sid", exc_info=True)
+
     def attach(self, session: Any, ctx: Any) -> None:
         """Register native session + room listeners and start the flush task."""
         self._ensure_task()
 
         room = getattr(ctx, "room", None)
-        if room is not None:
-            sid = getattr(room, "sid", None)
-            if sid:
-                self._meta = {**(self._meta or {}), "livekitSessionId": str(sid)}
-                self._meta_pending = True
 
         for ev in SESSION_EVENTS:
             if ev in _SKIP_SEND:
