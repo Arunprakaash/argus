@@ -22,7 +22,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"events\": [\n    {\n      \"roomName\": \"interview_example_room\",\n      \"source\": \"vision_proctor\",\n      \"type\": \"vision_mobile_device_detected\",\n      \"ts\": \"2026-07-03T14:30:00.000Z\",\n      \"data\": {\n        \"timestamp\": \"2026-07-03T14:30:00.000Z\",\n        \"source_identity\": \"candidate_example\",\n        \"frame_width\": 1280,\n        \"frame_height\": 720,\n        \"face_detected\": true,\n        \"face_count\": 1,\n        \"faces\": [],\n        \"devices\": [\n          {\n            \"class\": \"cell_phone\",\n            \"confidence\": 0.86,\n            \"box\": { \"x1\": 0.62, \"y1\": 0.31, \"x2\": 0.78, \"y2\": 0.74 }\n          }\n        ],\n        \"elapsed_interview_seconds\": 42.5\n      }\n    }\n  ]\n}"
+          "raw": "{\n  \"events\": [\n    {\n      \"roomName\": \"interview_example_room\",\n      \"source\": \"vision_proctor\",\n      \"type\": \"vision_cellphone_detected\",\n      \"ts\": \"2026-07-03T14:30:00.000Z\",\n      \"data\": {\n        \"timestamp\": \"2026-07-03T14:30:00.000Z\",\n        \"source_identity\": \"candidate_example\",\n        \"frame_width\": 1280,\n        \"frame_height\": 720,\n        \"face_detected\": true,\n        \"face_count\": 1,\n        \"faces\": [],\n        \"devices\": [\n          {\n            \"class\": \"cell_phone\",\n            \"confidence\": 0.86,\n            \"box\": { \"x1\": 0.62, \"y1\": 0.31, \"x2\": 0.78, \"y2\": 0.74 }\n          }\n        ],\n        \"elapsed_interview_seconds\": 42.5\n      }\n    },\n    {\n      \"roomName\": \"interview_example_room\",\n      \"source\": \"vision_proctor\",\n      \"type\": \"vision_laptop_detected\",\n      \"ts\": \"2026-07-03T14:31:00.000Z\",\n      \"data\": {\n        \"timestamp\": \"2026-07-03T14:31:00.000Z\",\n        \"source_identity\": \"candidate_example\",\n        \"frame_width\": 1280,\n        \"frame_height\": 720,\n        \"face_detected\": true,\n        \"face_count\": 1,\n        \"faces\": [],\n        \"devices\": [\n          {\n            \"class\": \"laptop\",\n            \"confidence\": 0.91,\n            \"box\": { \"x1\": 0.12, \"y1\": 0.28, \"x2\": 0.55, \"y2\": 0.82 }\n          }\n        ],\n        \"elapsed_interview_seconds\": 102.0\n      }\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/ingest/events",
@@ -34,7 +34,8 @@
             "ingest",
             "events"
           ]
-        }
+        },
+        "description": "Ingest vision proctoring flags. Supported types: vision_no_video_track, vision_no_face_detected, vision_multiple_faces, vision_mobile_device_detected, vision_cellphone_detected, vision_laptop_detected. Each maps to a flags row and triggers Slack/email when notify_on.proctoring is enabled."
       },
       "response": []
     },
