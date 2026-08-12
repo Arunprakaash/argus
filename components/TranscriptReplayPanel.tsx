@@ -1,11 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { fmtDate, fmtTimecode, titleCase } from "@/lib/format";
 import { FLAG_TOOL_TO_TYPE } from "@/lib/schema";
 
-type ReplayFlag = { id: string | number; type: string; ts: string };
+type BBox = { x1: number; y1: number; x2: number; y2: number };
+type VisionDevice = { class?: string; confidence?: number; box?: BBox };
+type VisionFace = { confidence?: number; box?: BBox };
+type ReplayFlag = {
+  id: string | number;
+  type: string;
+  ts: string;
+  data?: {
+    devices?: VisionDevice[];
+    faces?: VisionFace[];
+    elapsed_interview_seconds?: number;
+    frame_width?: number;
+    frame_height?: number;
+  } | null;
+};
 type TimelineMarker = { id: string; label: string; ts: string; vision?: boolean };
+type OverlayBox = {
+  key: string;
+  kind: "device" | "face";
+  label: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
+const BOX_LEAD_SEC = 0.25;
+const BOX_HOLD_SEC = 3;
 
 const TOOL_LABELS: Record<string, string> = {
   handle_out_of_context: "Out of context",
@@ -107,6 +133,133 @@ function timelineDuration(
   if (durationSec && durationSec > 0) return durationSec;
   if (markers.length === 0) return 0;
   return Math.max(...markers.map((m) => tsToOffsetSec(m.ts, anchor)));
+}
+
+function flagOffsetSec(flag: ReplayFlag, anchor: number): number {
+  const elapsed = flag.data?.elapsed_interview_seconds;
+  if (typeof elapsed === "number" && Number.isFinite(elapsed) && elapsed >= 0) return elapsed;
+  return tsToOffsetSec(flag.ts, anchor);
+}
+
+function isValidBox(box: BBox | undefined): box is BBox {
+  if (!box) return false;
+  const { x1, y1, x2, y2 } = box;
+  return [x1, y1, x2, y2].every((n) => typeof n === "number" && Number.isFinite(n))
+    && x2 > x1 && y2 > y1;
+}
+
+function deviceLabel(device: VisionDevice): string {
+  const cls = (device.class ?? "device").replace(/_/g, " ");
+  const conf = typeof device.confidence === "number"
+    ? ` ${Math.round(device.confidence * 100)}%`
+    : "";
+  return `${titleCase(cls)}${conf}`;
+}
+
+function boxesAtTime(flags: ReplayFlag[], anchor: number, playbackSec: number): OverlayBox[] {
+  const out: OverlayBox[] = [];
+  for (const flag of flags) {
+    if (!flag.type.startsWith("vision_")) continue;
+    const offset = flagOffsetSec(flag, anchor);
+    if (playbackSec < offset - BOX_LEAD_SEC || playbackSec > offset + BOX_HOLD_SEC) continue;
+
+    const devices = flag.data?.devices ?? [];
+    devices.forEach((device, i) => {
+      if (!isValidBox(device.box)) return;
+      out.push({
+        key: `${flag.id}-d-${i}`,
+        kind: "device",
+        label: deviceLabel(device),
+        ...device.box,
+      });
+    });
+
+    const faces = flag.data?.faces ?? [];
+    faces.forEach((face, i) => {
+      if (!isValidBox(face.box)) return;
+      const conf = typeof face.confidence === "number"
+        ? ` ${Math.round(face.confidence * 100)}%`
+        : "";
+      out.push({
+        key: `${flag.id}-f-${i}`,
+        kind: "face",
+        label: `Face${conf}`,
+        ...face.box,
+      });
+    });
+  }
+  return out;
+}
+
+function videoContentRect(video: HTMLVideoElement): { left: number; top: number; width: number; height: number } {
+  const { videoWidth: vw, videoHeight: vh, clientWidth: ew, clientHeight: eh } = video;
+  if (!vw || !vh || !ew || !eh) return { left: 0, top: 0, width: ew, height: eh };
+  const scale = Math.min(ew / vw, eh / vh);
+  const width = vw * scale;
+  const height = vh * scale;
+  return {
+    left: (ew - width) / 2,
+    top: (eh - height) / 2,
+    width,
+    height,
+  };
+}
+
+function VisionBboxOverlay({
+  videoRef,
+  boxes,
+}: {
+  videoRef: RefObject<HTMLVideoElement | null>;
+  boxes: OverlayBox[];
+}) {
+  const [rect, setRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
+
+  const measure = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    setRect(videoContentRect(video));
+  }, [videoRef]);
+
+  useEffect(() => {
+    measure();
+    const video = videoRef.current;
+    if (!video) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(video);
+    video.addEventListener("loadedmetadata", measure);
+    document.addEventListener("fullscreenchange", measure);
+    return () => {
+      ro.disconnect();
+      video.removeEventListener("loadedmetadata", measure);
+      document.removeEventListener("fullscreenchange", measure);
+    };
+  }, [measure, videoRef]);
+
+  if (boxes.length === 0 || rect.width <= 0 || rect.height <= 0) return null;
+
+  return (
+    <div className="replay-bbox-layer" aria-hidden>
+      <div
+        className="replay-bbox-frame"
+        style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+      >
+        {boxes.map((box) => (
+          <div
+            key={box.key}
+            className={`replay-bbox replay-bbox-${box.kind}`}
+            style={{
+              left: `${box.x1 * 100}%`,
+              top: `${box.y1 * 100}%`,
+              width: `${(box.x2 - box.x1) * 100}%`,
+              height: `${(box.y2 - box.y1) * 100}%`,
+            }}
+          >
+            <span className="replay-bbox-label">{box.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function buildTimelineMarkers(flags: ReplayFlag[], merged: MergedItem[]): TimelineMarker[] {
@@ -491,6 +644,11 @@ export default function TranscriptReplayPanel({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
 
+  const activeBoxes = useMemo(
+    () => boxesAtTime(flags, anchor, playbackSec),
+    [flags, anchor, playbackSec],
+  );
+
   const timelineLen = useMemo(
     () => timelineDuration(videoDuration, durationSec, timelineMarkers, anchor),
     [videoDuration, durationSec, timelineMarkers, anchor],
@@ -585,21 +743,24 @@ export default function TranscriptReplayPanel({
       <div className="replay-video-col">
         <div className="replay-video-label">Interview recording</div>
         <div className="replay-video-shell" ref={shellRef}>
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            preload="auto"
-            playsInline
-            // @ts-expect-error fetchPriority is valid on video in modern browsers
-            fetchPriority="high"
-            className="replay-video"
-            onTimeUpdate={onTimeUpdate}
-            onLoadedMetadata={onVideoMetadata}
-            onDurationChange={onVideoMetadata}
-            onLoadedData={onVideoLoaded}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
+          <div className="replay-video-stage">
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              preload="auto"
+              playsInline
+              // @ts-expect-error fetchPriority is valid on video in modern browsers
+              fetchPriority="high"
+              className="replay-video"
+              onTimeUpdate={onTimeUpdate}
+              onLoadedMetadata={onVideoMetadata}
+              onDurationChange={onVideoMetadata}
+              onLoadedData={onVideoLoaded}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+            <VisionBboxOverlay videoRef={videoRef} boxes={activeBoxes} />
+          </div>
           <ReplayControls
             videoRef={videoRef}
             shellRef={shellRef}

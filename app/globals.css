@@ -528,13 +528,67 @@ audio { width: 100%; margin-top: 4px; }
 .replay-video-shell:fullscreen .replay-video {
   flex: 1;
   min-height: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+.replay-video-shell:fullscreen .replay-video-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .replay-video-shell:fullscreen .replay-controls {
   flex-shrink: 0;
   overflow: visible;
 }
+.replay-video-stage {
+  position: relative;
+  background: #000;
+}
 .replay-video { display: block; width: 100%; background: #000; border: 0; }
+.replay-bbox-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.replay-bbox-frame {
+  position: absolute;
+  overflow: visible;
+}
+.replay-bbox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid;
+}
+.replay-bbox-device {
+  border-color: #f0a020;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.replay-bbox-face {
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.replay-bbox-label {
+  position: absolute;
+  left: -2px;
+  top: 0;
+  transform: translateY(-100%);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+}
+.replay-bbox-device .replay-bbox-label { background: rgba(180, 100, 0, 0.9); }
+.replay-bbox-face .replay-bbox-label { background: rgba(30, 100, 180, 0.9); }
 .replay-controls {
   display: flex;
   align-items: center;
