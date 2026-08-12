@@ -14,6 +14,8 @@ const VISION_EVENT_TO_FLAG_TYPE: Record<string, string> = {
   vision_no_video_track: "vision_no_video_track",
   vision_no_face_detected: "vision_no_face_detected",
   vision_multiple_faces: "vision_multiple_faces",
+  vision_device_detected: "vision_device_detected",
+  // Kept for older proctors / historical events
   vision_mobile_device_detected: "vision_mobile_device_detected",
   vision_cellphone_detected: "vision_cellphone_detected",
   vision_laptop_detected: "vision_laptop_detected",
